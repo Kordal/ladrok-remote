@@ -68,6 +68,13 @@ object HidReports {
         RemoteKey.Page.Consumer -> consumer(0)
     }
 
+    /** Report [id] with nothing held, for a host asking for its current state; null for a report the descriptor lacks. */
+    fun idle(id: Int): Report? = when (id) {
+        KEYBOARD -> keyboard(0, 0)
+        CONSUMER -> consumer(0)
+        else -> null
+    }
+
     /** Press and release for each character of [text] a US keyboard can type; others are skipped. */
     fun type(text: String): List<Report> = text.flatMap { char ->
         val (modifiers, usage) = KEYS[char] ?: return@flatMap emptyList()

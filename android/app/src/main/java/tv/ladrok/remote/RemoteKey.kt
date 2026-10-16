@@ -16,7 +16,6 @@ enum class RemoteKey(val page: Page, val usage: Int) {
     Ok(Page.Consumer, 0x0041),        // Menu Pick: DPAD_CENTER
     Back(Page.Consumer, 0x0224),      // AC Back: BACK
     Home(Page.Consumer, 0x0223),      // AC Home: HOME
-    Menu(Page.Consumer, 0x0040),      // MENU
     PlayPause(Page.Consumer, 0x00CD), // MEDIA_PLAY_PAUSE
     Rewind(Page.Consumer, 0x00B4),    // MEDIA_REWIND
     FastForward(Page.Consumer, 0x00B3), // MEDIA_FAST_FORWARD
@@ -31,8 +30,7 @@ enum class RemoteKey(val page: Page, val usage: Int) {
     Six(Page.Keyboard, 0x23),
     Seven(Page.Keyboard, 0x24),
     Eight(Page.Keyboard, 0x25),
-    Nine(Page.Keyboard, 0x26),
-    Zero(Page.Keyboard, 0x27);
+    Nine(Page.Keyboard, 0x26);
 
     enum class Page { Keyboard, Consumer }
 

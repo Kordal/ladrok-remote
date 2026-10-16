@@ -30,7 +30,6 @@ class HidReportsTest {
     fun digitsAreTheKeyboardDigitsSoTheLauncherKeypadOpensTiles() {
         assertEquals(0x1E, keyOf(RemoteKey.One))
         assertEquals(0x26, keyOf(RemoteKey.Nine))
-        assertEquals(0x27, keyOf(RemoteKey.Zero))
     }
 
     @Test
@@ -48,13 +47,19 @@ class HidReportsTest {
     fun theTvKeysAreConsumerControls() {
         assertEquals(0x0041, usageOf(RemoteKey.Ok)) // Menu Pick: DPAD_CENTER, not Enter
         assertEquals(0x0224, usageOf(RemoteKey.Back))
-        assertEquals(0x0040, usageOf(RemoteKey.Menu))
         assertEquals(0x00CD, usageOf(RemoteKey.PlayPause))
         assertEquals(0x00B4, usageOf(RemoteKey.Rewind))
         assertEquals(0x00B3, usageOf(RemoteKey.FastForward))
         assertEquals(0x00E9, usageOf(RemoteKey.VolumeUp))
         assertEquals(0x00EA, usageOf(RemoteKey.VolumeDown))
         assertEquals(0x00E2, usageOf(RemoteKey.Mute))
+    }
+
+    @Test
+    fun anIdleReportHoldsNothingAndMatchesTheReleases() {
+        assertEquals(HidReports.release(RemoteKey.Up), HidReports.idle(HidReports.KEYBOARD))
+        assertEquals(HidReports.release(RemoteKey.Home), HidReports.idle(HidReports.CONSUMER))
+        assertEquals(null, HidReports.idle(3))
     }
 
     @Test

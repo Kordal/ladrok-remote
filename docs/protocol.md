@@ -13,7 +13,7 @@ A Key is pressed on touch down and released on lift, so the TV repeats held arro
 | Down | Keyboard | 0x51 | KEY_DOWN | DPAD_DOWN |
 | Left | Keyboard | 0x50 | KEY_LEFT | DPAD_LEFT |
 | Right | Keyboard | 0x4F | KEY_RIGHT | DPAD_RIGHT |
-| 1–9, 0 | Keyboard | 0x1E–0x26, 0x27 | KEY_1–KEY_0 | 1–9, 0 |
+| 1–9 | Keyboard | 0x1E–0x26 | KEY_1–KEY_9 | 1–9 |
 | OK | Consumer 0x0C | 0x041 Menu Pick | KEY_SELECT (353) | DPAD_CENTER |
 | Back | Consumer | 0x224 AC Back | KEY_BACK (158) | BACK |
 | Home | Consumer | 0x223 AC Home | KEY_HOMEPAGE (172) | HOME |

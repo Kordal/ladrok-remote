@@ -9,7 +9,7 @@ enum class TvState { Connecting, Connected, Disconnecting, Disconnected }
 
 /** The Link between the Remote and a TV: what the Remote screen shows above its keys. */
 sealed interface Link {
-    /** No Bluetooth, or this phone doesn't offer the HID device profile. Nothing to try. */
+    /** No Bluetooth, or this phone doesn't offer the HID device profile. Tried again each time the Remote opens. */
     data object Unsupported : Link
     /** The viewer hasn't allowed the Remote to use Bluetooth. */
     data object NoPermission : Link
@@ -23,7 +23,12 @@ sealed interface Link {
     data class Connected(val tv: Tv) : Link
 
     fun next(event: LinkEvent): Link = when {
-        this == Unsupported -> this
+        // A slow phone can still register after the Remote gave up on it.
+        this == Unsupported -> when (event) {
+            LinkEvent.Start -> Starting
+            LinkEvent.Registered(true) -> Waiting(searching = false)
+            else -> this
+        }
         event == LinkEvent.Unsupported -> Unsupported
         event == LinkEvent.NoPermission -> NoPermission
         event == LinkEvent.BluetoothOff -> Off
@@ -61,23 +66,4 @@ sealed interface LinkEvent {
     data class Registered(val registered: Boolean) : LinkEvent
     data class Searching(val on: Boolean) : LinkEvent
     data class TvChanged(val tv: Tv, val state: TvState) : LinkEvent
-}
-
-object Tvs {
-    // Bluetooth class of device, major Audio/Video: set-top box (Ladrok TV), video monitor, display and loudspeaker.
-    private val TV_CLASSES = setOf(0x0424, 0x0438, 0x043C)
-
-    /** Whether a paired device's class of device (as BluetoothClass reports it) is a TV or a TV box. */
-    fun looksLikeTv(classOfDevice: Int): Boolean = (classOfDevice and 0x1FFC) in TV_CLASSES
-
-    /** The TV to connect to without asking: the last one, if the phone is still paired with it. */
-    fun toReconnect(paired: List<Tv>, lastAddress: String?): Tv? = paired.firstOrNull { it.address == lastAddress }
-
-    /** [found] added to the TVs found so far, or, when found again, given its newest name. */
-    fun found(tvs: List<Tv>, found: Tv): List<Tv> =
-        if (tvs.any { it.address == found.address }) tvs.map { if (it.address == found.address) found else it } else tvs + found
-
-    /** TVs to choose from: the last one first, then by name. */
-    fun ordered(tvs: List<Tv>, lastAddress: String?): List<Tv> =
-        tvs.sortedWith(compareBy<Tv> { it.address != lastAddress }.thenBy(String.CASE_INSENSITIVE_ORDER) { it.name })
 }

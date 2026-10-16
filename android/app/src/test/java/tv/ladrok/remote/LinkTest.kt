@@ -84,8 +84,14 @@ class LinkTest {
     }
 
     @Test
-    fun unsupportedIsFinal() {
-        assertEquals(Link.Unsupported, Link.Waiting(searching = false).after(Unsupported, Start, Registered(true), TvChanged(lounge, TvState.Connected)))
+    fun unsupportedIgnoresTvsAndBluetooth() {
+        assertEquals(Link.Unsupported, Link.Waiting(searching = false).after(Unsupported, TvChanged(lounge, TvState.Connected), BluetoothOff))
+    }
+
+    @Test
+    fun unsupportedIsLeftByARetryOrALateRegistration() {
+        assertEquals(Link.Starting, Link.Unsupported.after(Start))
+        assertEquals(Link.Waiting(searching = false), Link.Unsupported.after(Registered(true)))
     }
 
     @Test

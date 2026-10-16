@@ -5,7 +5,9 @@ import android.Manifest
 import android.bluetooth.BluetoothAdapter
 import android.content.Intent
 import android.graphics.Color
+import android.net.Uri
 import android.os.Bundle
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
@@ -37,7 +39,7 @@ class RemoteActivity : ComponentActivity() {
             onDisconnect = remote::disconnect,
             onSearch = remote::search,
             onStopSearching = remote::stopSearching,
-            onAllow = { askPermissions() },
+            onAllow = ::allow,
             onSwitchOn = { enable.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)) },
         )
         setContent {
@@ -49,8 +51,13 @@ class RemoteActivity : ComponentActivity() {
         if (savedInstanceState == null) askPermissions()
     }
 
-    private fun askPermissions() =
-        permissions.launch(arrayOf(Manifest.permission.BLUETOOTH_CONNECT, Manifest.permission.BLUETOOTH_SCAN))
+    private fun askPermissions() = permissions.launch(BLUETOOTH)
+
+    // Once the viewer has said no twice, Android stops asking: only the app's settings can allow it then.
+    private fun allow() {
+        if (BLUETOOTH.any(::shouldShowRequestPermissionRationale)) return askPermissions()
+        startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", packageName, null)))
+    }
 
     override fun onStart() {
         super.onStart()
@@ -60,5 +67,9 @@ class RemoteActivity : ComponentActivity() {
     override fun onStop() {
         remote.stop()
         super.onStop()
+    }
+
+    private companion object {
+        val BLUETOOTH = arrayOf(Manifest.permission.BLUETOOTH_CONNECT, Manifest.permission.BLUETOOTH_SCAN)
     }
 }

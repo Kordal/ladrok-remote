@@ -46,6 +46,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
@@ -207,6 +208,9 @@ private fun Tabs(tab: Tab, onTab: (Tab) -> Unit) {
     }
 }
 
+/** A raised surface with the Launcher's thin line around it. */
+private fun Modifier.raised(shape: Shape) = clip(shape).background(Raised).border(BorderStroke(1.dp, Line), shape)
+
 /**
  * A key the viewer holds: pressed on touch down, released on lift, like a real remote, so the TV repeats
  * held arrows and sees long presses (long-press OK opens a Tile's menu in the Launcher).
@@ -263,9 +267,7 @@ private fun DPad(actions: RemoteActions, enabled: Boolean, haptic: () -> Unit) {
     Box(
         Modifier
             .size(240.dp)
-            .clip(CircleShape)
-            .background(Raised)
-            .border(BorderStroke(1.dp, Line), CircleShape),
+            .raised(CircleShape),
     ) {
         Arrow(RemoteKey.Up, stringResource(R.string.key_up), 0f, Alignment.TopCenter, enabled, actions, haptic)
         Arrow(RemoteKey.Right, stringResource(R.string.key_right), 90f, Alignment.CenterEnd, enabled, actions, haptic)
@@ -319,9 +321,7 @@ private fun RoundKey(
     Box(
         Modifier
             .size(64.dp)
-            .clip(CircleShape)
-            .background(Raised)
-            .border(BorderStroke(1.dp, Line), CircleShape)
+            .raised(CircleShape)
             .key(key, label, enabled, actions, haptic),
         contentAlignment = Alignment.Center,
     ) {
@@ -342,9 +342,7 @@ private fun Keypad(actions: RemoteActions, enabled: Boolean) {
                         Modifier
                             .weight(1f)
                             .aspectRatio(1.25f)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Raised)
-                            .border(BorderStroke(1.dp, Line), RoundedCornerShape(12.dp))
+                            .raised(RoundedCornerShape(12.dp))
                             .key(key, digit, enabled, actions, haptic),
                         contentAlignment = Alignment.Center,
                     ) {
@@ -377,9 +375,7 @@ private fun TypeBox(actions: RemoteActions, enabled: Boolean) {
             keyboardActions = KeyboardActions(onSend = { send() }),
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .background(Raised)
-                .border(BorderStroke(1.dp, Line), RoundedCornerShape(12.dp))
+                .raised(RoundedCornerShape(12.dp))
                 .padding(16.dp),
             decorationBox = { field ->
                 Box {

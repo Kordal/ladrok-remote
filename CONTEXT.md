@@ -13,11 +13,11 @@ A Ladrok TV (or another Android TV) the Remote can pair with and connect to.
 _Avoid_: Host, receiver, box
 
 **Key**:
-One button on the Remote: an arrow, OK, Back, Home, a playback or volume button, or a digit. Each sends one HID usage (see [docs/protocol.md](docs/protocol.md)).
+One button on the Remote: an arrow, OK, Back, Home, a playback or volume button, or a digit 1–9. Each sends one HID usage (see [docs/protocol.md](docs/protocol.md)).
 _Avoid_: Button (in code), command
 
 **Keypad**:
-The Remote's digits 1–9, three by three. They are the Launcher's Keypad: each digit opens the Tile with that digit.
+The Remote's digits 1–9, three by three. They mirror the Keypad of the Launcher (Ladrok TV's home screen, see [ladrok-start](https://github.com/Kordal/ladrok-start/blob/main/CONTEXT.md)): each digit opens the App with that digit.
 _Avoid_: Number pad, numpad
 
 **Type**:
@@ -30,7 +30,7 @@ _Avoid_: Scan, discover
 
 **Pair**:
 The one-time Bluetooth bond between the Remote and a TV, confirmed on both with the same code.
-_Avoid_: Register, link (in UI text)
+_Avoid_: Register, bond (in UI text)
 
 **Link**:
 The Remote's state towards a TV: unsupported, no permission, Bluetooth off, starting, waiting (or searching), connecting, connected.

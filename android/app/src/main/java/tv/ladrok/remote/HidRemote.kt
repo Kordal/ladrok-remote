@@ -44,7 +44,7 @@ class HidRemote(context: Context) : RemoteTransport {
     private var hid: BluetoothHidDevice? = null
     private var host: BluetoothDevice? = null
     private var listening = false
-    private var asked = false
+    private var proxyRequested = false
     /** A TV being paired, to connect to once bonded. */
     private var pending: BluetoothDevice? = null
 
@@ -69,8 +69,8 @@ class HidRemote(context: Context) : RemoteTransport {
         if (!adapter.isEnabled) return on(LinkEvent.BluetoothOff)
         on(LinkEvent.Start)
         refreshTvs()
-        if (hid != null || asked) return
-        asked = true
+        if (hid != null || proxyRequested) return
+        proxyRequested = true
         if (!adapter.getProfileProxy(context, proxyListener, BluetoothProfile.HID_DEVICE)) return on(LinkEvent.Unsupported)
         // Some phones' Bluetooth never offers the HID device profile: they just don't answer.
         main.postDelayed(noProfile, PROFILE_TIMEOUT_MS)
@@ -81,7 +81,7 @@ class HidRemote(context: Context) : RemoteTransport {
         if (!allowed() || !scanAllowed() || _link.value !is Link.Waiting) return
         _found.value = emptyList()
         on(LinkEvent.Searching(true))
-        adapter?.startDiscovery()
+        if (adapter?.startDiscovery() != true) stopSearching()
         main.removeCallbacks(searchOver)
         main.postDelayed(searchOver, SEARCH_MS)
     }
@@ -95,30 +95,35 @@ class HidRemote(context: Context) : RemoteTransport {
     private val searchOver = Runnable { stopSearching() }
 
     override fun stop() {
-        main.removeCallbacks(noProfile)
-        main.removeCallbacks(searchOver)
         if (scanAllowed()) adapter?.cancelDiscovery()
-        pending = null
         if (listening) context.unregisterReceiver(receiver)
         listening = false
-        hid?.let {
-            if (allowed()) it.unregisterApp()
-            adapter?.closeProfileProxy(BluetoothProfile.HID_DEVICE, it)
-        }
+        if (allowed()) hid?.unregisterApp()
+        reset()
+        on(LinkEvent.Registered(false))
+    }
+
+    private fun searching() = _link.value.let { it is Link.Waiting && it.searching }
+
+    /** Forgets the profile and the TV, closing the proxy so it can't call back in later. */
+    private fun reset() {
+        main.removeCallbacks(noProfile)
+        main.removeCallbacks(searchOver)
+        hid?.let { adapter?.closeProfileProxy(BluetoothProfile.HID_DEVICE, it) }
         hid = null
         host = null
-        asked = false
-        on(LinkEvent.Registered(false))
+        pending = null
+        proxyRequested = false
     }
 
     override fun connect(tv: Tv) {
         val hid = hid ?: return
         if (!allowed()) return
-        if (_link.value.let { it is Link.Waiting && it.searching }) stopSearching() // discovery slows connecting down
+        if (searching()) stopSearching() // discovery slows connecting down
         host?.takeIf { it.address != tv.address }?.let { hid.disconnect(it) }
         val device = adapter?.getRemoteDevice(tv.address) ?: return
         if (device.bondState == BluetoothDevice.BOND_BONDED) {
-            hid.connect(device)
+            if (!hid.connect(device)) failed(device)
         } else {
             // A TV found nearby: pair first (the TV asks to confirm), then connect once bonded.
             pending = device
@@ -178,12 +183,7 @@ class HidRemote(context: Context) : RemoteTransport {
                     BluetoothAdapter.STATE_ON -> start()
                     BluetoothAdapter.STATE_TURNING_OFF, BluetoothAdapter.STATE_OFF -> {
                         // The profile goes with Bluetooth; ask for it again once it's back on.
-                        main.removeCallbacks(noProfile)
-                        main.removeCallbacks(searchOver)
-                        pending = null
-                        hid = null
-                        host = null
-                        asked = false
+                        reset()
                         on(LinkEvent.BluetoothOff)
                     }
                 }
@@ -192,7 +192,10 @@ class HidRemote(context: Context) : RemoteTransport {
                     val device = IntentCompat.getParcelableExtra(intent, BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java)
                     if (device == null || device.address != pending?.address) return
                     when (intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE, BluetoothDevice.BOND_NONE)) {
-                        BluetoothDevice.BOND_BONDED -> { pending = null; hid?.connect(device) }
+                        BluetoothDevice.BOND_BONDED -> {
+                            pending = null
+                            if (hid?.connect(device) != true) failed(device)
+                        }
                         BluetoothDevice.BOND_NONE -> failed(device) // declined on the TV, or timed out
                     }
                 }
@@ -203,7 +206,7 @@ class HidRemote(context: Context) : RemoteTransport {
                 }
                 // One round of discovery lasts about 12 seconds; keep looking while the viewer is.
                 BluetoothAdapter.ACTION_DISCOVERY_FINISHED ->
-                    if (_link.value.let { it is Link.Waiting && it.searching } && scanAllowed()) adapter?.startDiscovery()
+                    if (searching() && scanAllowed()) adapter?.startDiscovery()
             }
         }
     }
@@ -225,9 +228,7 @@ class HidRemote(context: Context) : RemoteTransport {
         }
 
         override fun onServiceDisconnected(profile: Int) {
-            hid = null
-            host = null
-            asked = false
+            reset()
             on(LinkEvent.Registered(false))
         }
     }
@@ -264,11 +265,8 @@ class HidRemote(context: Context) : RemoteTransport {
         override fun onGetReport(device: BluetoothDevice, type: Byte, id: Byte, bufferSize: Int) {
             val hid = hid ?: return
             if (!allowed()) return
-            when (id.toInt()) {
-                HidReports.KEYBOARD -> hid.replyReport(device, type, id, ByteArray(8))
-                HidReports.CONSUMER -> hid.replyReport(device, type, id, ByteArray(2))
-                else -> hid.reportError(device, BluetoothHidDevice.ERROR_RSP_INVALID_RPT_ID)
-            }
+            val idle = HidReports.idle(id.toInt()) ?: return run { hid.reportError(device, BluetoothHidDevice.ERROR_RSP_INVALID_RPT_ID) }
+            hid.replyReport(device, type, id, idle.data)
         }
 
         override fun onSetReport(device: BluetoothDevice, type: Byte, id: Byte, data: ByteArray) {

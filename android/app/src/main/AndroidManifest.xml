@@ -17,7 +17,8 @@
             android:supportsRtl="true">
         <activity android:name=".RemoteActivity"
                 android:exported="true"
-                android:launchMode="singleTask">
+                android:launchMode="singleTask"
+                android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden|navigation|uiMode|density|fontScale|locale|layoutDirection">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
