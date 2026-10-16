@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<resources>
+    <string name="app_name">Ladrok Remote</string>
+
+    <string name="unsupported">This phone\'s Bluetooth can\'t act as a remote.</string>
+    <string name="no_permission">Allow Nearby devices, so the Remote can reach your TV.</string>
+    <string name="allow">Allow</string>
+    <string name="off">Bluetooth is off.</string>
+    <string name="switch_on">Switch on</string>
+    <string name="starting">Starting…</string>
+    <string name="not_connected">Not connected</string>
+    <string name="pair">Pair a TV</string>
+    <string name="searching">On the TV, open Settings › Remotes &amp; Accessories › Add accessory, so the phone can find it. Then choose the TV here.</string>
+    <string name="stop">Stop</string>
+    <string name="connecting">Connecting to %1$s…</string>
+    <string name="disconnect">Disconnect</string>
+
+    <string name="tab_remote">Remote</string>
+    <string name="tab_keypad">Keypad</string>
+    <string name="tab_type">Type</string>
+
+    <string name="key_up">Up</string>
+    <string name="key_down">Down</string>
+    <string name="key_left">Left</string>
+    <string name="key_right">Right</string>
+    <string name="key_ok">OK</string>
+    <string name="key_back">Back</string>
+    <string name="key_home">Home</string>
+    <string name="key_play_pause">Play or pause</string>
+    <string name="key_rewind">Rewind</string>
+    <string name="key_fast_forward">Fast forward</string>
+    <string name="key_volume_up">Volume up</string>
+    <string name="key_volume_down">Volume down</string>
+    <string name="key_mute">Mute</string>
+
+    <string name="type_hint">Text for the TV</string>
+    <string name="send">Send</string>
+    <string name="delete">Delete</string>
+    <string name="enter">Enter</string>
+</resources>

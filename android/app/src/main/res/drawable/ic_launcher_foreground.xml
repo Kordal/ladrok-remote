@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!-- The Ladrok logo in silver, at its own aspect ratio, inside the adaptive icon's 66dp safe zone. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:width="56dp" android:height="48.5dp" android:gravity="center">
+        <bitmap android:src="@drawable/ladrok_logo" android:tint="#CFCFCF" />
+    </item>
+</layer-list>
