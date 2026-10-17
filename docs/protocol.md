@@ -28,7 +28,7 @@ A Key is pressed on touch down and released on lift, so the TV repeats held arro
 
 Checked against Linux `drivers/hid/hid-input.c` and AOSP `frameworks/base/data/keyboards/Generic.kl`. Sleep timer is Ladrok TV's own key ([ladrok-tv#24](https://github.com/Kordal/ladrok-tv/issues/24)): the TV claims BUTTON_1 in any app, and each press cycles the timer Off, 30, 60, 90, 120 min. Not `SLEEP`, which would sleep the TV at once. OK is Menu Pick, not Enter: Enter would arrive as `ENTER`, not `DPAD_CENTER`.
 
-The Pointer sends mouse reports: while a thumb is on its pad (or, with the Pointer switched on, while it isn't), the phone's gyroscope turns into X and Y steps (turn left, the pointer goes left; tilt the top up, it goes up). A tap is a left click (press, then release 40 ms later), and sliding on the pad sends wheel steps. Android TV shows its own pointer for the mouse.
+The Pointer sends mouse reports: while a thumb is on its pad (or, with the Pointer switched on, while it isn't), the phone's gyroscope turns into X and Y steps (turn left, the pointer goes left; tilt the top up, it goes up). A tap is a left click (press, then release 40 ms later), sliding on the pad sends wheel steps, and holding the pad still for 450 ms holds the left button down until the thumb lifts, so turning the phone drags. Android TV shows its own pointer for the mouse.
 
 Type sends keyboard reports for a US layout (letters, digits, space, Enter, Backspace and the usual punctuation, with Left Shift where needed). Characters a US keyboard can't type are skipped.
 

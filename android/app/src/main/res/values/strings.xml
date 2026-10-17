@@ -21,8 +21,8 @@
     <string name="tab_pointer">Pointer</string>
     <string name="tab_type">Type</string>
 
-    <string name="pointer_hint">Hold here and point the phone to move the pointer. Tap to click, slide to scroll.</string>
-    <string name="pointer_hint_on">Point the phone to move the pointer. Tap here to click, slide to scroll. The pointer holds still while your thumb is on the pad.</string>
+    <string name="pointer_hint">Hold here and point the phone to move the pointer. Tap to click, slide to scroll, hold still to drag.</string>
+    <string name="pointer_hint_on">Point the phone to move the pointer. Tap here to click, slide to scroll, hold still to drag. The pointer holds still while your thumb is on the pad.</string>
     <string name="pointer_on">Pointer on</string>
     <string name="pointer_off">Pointer off</string>
     <string name="pointer_pad">Pointer pad</string>
