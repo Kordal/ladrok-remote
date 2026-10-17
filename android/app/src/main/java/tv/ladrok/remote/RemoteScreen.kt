@@ -43,9 +43,12 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathOperation
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
@@ -251,6 +254,7 @@ private fun RemoteKeys(actions: RemoteActions, enabled: Boolean) {
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
             RoundKey(RemoteKey.Rewind, stringResource(R.string.key_rewind), enabled, actions, haptic) { drawSkip(it, forward = false) }
+            RoundKey(RemoteKey.Sleep, stringResource(R.string.key_sleep), enabled, actions, haptic) { drawMoon(it) }
             RoundKey(RemoteKey.FastForward, stringResource(R.string.key_fast_forward), enabled, actions, haptic) { drawSkip(it, forward = true) }
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
@@ -463,6 +467,14 @@ private fun DrawScope.drawMinus(color: Color) {
 private fun DrawScope.drawPlus(color: Color) {
     drawMinus(color)
     drawLine(color, Offset(size.width / 2, size.height * 0.2f), Offset(size.width / 2, size.height * 0.8f), 2.dp.toPx(), StrokeCap.Round)
+}
+
+private fun DrawScope.drawMoon(color: Color) {
+    val w = size.width
+    val h = size.height
+    val disc = Path().apply { addOval(Rect(Offset(w * 0.1f, h * 0.1f), Size(w * 0.8f, h * 0.8f))) }
+    val bite = Path().apply { addOval(Rect(Offset(w * 0.38f, h * 0.0f), Size(w * 0.7f, h * 0.7f))) }
+    drawPath(Path.combine(PathOperation.Difference, disc, bite), color, style = stroke())
 }
 
 private fun DrawScope.drawMute(color: Color) {

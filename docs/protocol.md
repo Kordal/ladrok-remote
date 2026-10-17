@@ -23,8 +23,9 @@ A Key is pressed on touch down and released on lift, so the TV repeats held arro
 | Volume up | Consumer | 0x0E9 | KEY_VOLUMEUP (115) | VOLUME_UP |
 | Volume down | Consumer | 0x0EA | KEY_VOLUMEDOWN (114) | VOLUME_DOWN |
 | Mute | Consumer | 0x0E2 | KEY_MUTE (113) | VOLUME_MUTE |
+| Sleep timer | Consumer | 0x036 | BTN_MISC (256) | BUTTON_1 |
 
-Checked against Linux `drivers/hid/hid-input.c` and AOSP `frameworks/base/data/keyboards/Generic.kl`. OK is Menu Pick, not Enter: Enter would arrive as `ENTER`, not `DPAD_CENTER`.
+Checked against Linux `drivers/hid/hid-input.c` and AOSP `frameworks/base/data/keyboards/Generic.kl`. Sleep timer is Ladrok TV's own key ([ladrok-tv#24](https://github.com/Kordal/ladrok-tv/issues/24)): the TV claims BUTTON_1 in any app, and each press cycles the timer Off, 30, 60, 90, 120 min. Not `SLEEP`, which would sleep the TV at once. OK is Menu Pick, not Enter: Enter would arrive as `ENTER`, not `DPAD_CENTER`.
 
 Type sends keyboard reports for a US layout (letters, digits, space, Enter, Backspace and the usual punctuation, with Left Shift where needed). Characters a US keyboard can't type are skipped.
 

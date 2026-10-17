@@ -13,7 +13,7 @@ A Ladrok TV (or another Android TV) the Remote can pair with and connect to.
 _Avoid_: Host, receiver, box
 
 **Key**:
-One button on the Remote: an arrow, OK, Back, Home, a playback or volume button, or a digit 1–9. Each sends one HID usage (see [docs/protocol.md](docs/protocol.md)).
+One button on the Remote: an arrow, OK, Back, Home, a playback or volume button, the sleep timer, or a digit 1–9. Each sends one HID usage (see [docs/protocol.md](docs/protocol.md)).
 _Avoid_: Button (in code), command
 
 **Keypad**:
