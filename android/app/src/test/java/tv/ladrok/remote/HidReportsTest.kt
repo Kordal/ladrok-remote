@@ -63,6 +63,14 @@ class HidReportsTest {
     }
 
     @Test
+    fun sleepIsLadrokTvsTimerKeyAsAConsumerControl() {
+        val report = HidReports.press(RemoteKey.Sleep)
+        assertEquals(HidReports.CONSUMER, report.id)
+        assertArrayEquals(bytes(0x36, 0x00), report.data)
+        assertArrayEquals(bytes(0, 0), HidReports.release(RemoteKey.Sleep).data)
+    }
+
+    @Test
     fun everyKeyHasAReport() {
         for (key in RemoteKey.entries) {
             val report = HidReports.press(key)
