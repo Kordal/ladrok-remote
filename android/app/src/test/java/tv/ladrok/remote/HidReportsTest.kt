@@ -107,13 +107,13 @@ class HidReportsTest {
 
     @Test
     fun theDescriptorDeclaresBothReportsAtTheirSizes() {
-        assertEquals(mapOf(HidReports.KEYBOARD to 8, HidReports.CONSUMER to 2, HidReports.MOUSE to 4), inputBytesPerReport(HidReports.DESCRIPTOR))
+        assertEquals(mapOf(HidReports.KEYBOARD to 8, HidReports.CONSUMER to 2, HidReports.MOUSE to 5), inputBytesPerReport(HidReports.DESCRIPTOR))
     }
 
     @Test
     fun theMouseSendsButtonsThenSignedMoves() {
-        assertEquals(Report(HidReports.MOUSE, bytes(0x01, 5, -3, 0)), HidReports.mouse(HidReports.LEFT_BUTTON, 5, -3))
-        assertEquals(Report(HidReports.MOUSE, bytes(0, 127, -127, 1)), HidReports.mouse(0, 300, -300, 1))
+        assertEquals(Report(HidReports.MOUSE, bytes(0x01, 5, -3, 0, 0)), HidReports.mouse(HidReports.LEFT_BUTTON, 5, -3))
+        assertEquals(Report(HidReports.MOUSE, bytes(0, 127, -127, 1, -127)), HidReports.mouse(0, 300, -300, 1, -300))
         assertEquals(HidReports.mouse(0, 0, 0), HidReports.idle(HidReports.MOUSE))
     }
 

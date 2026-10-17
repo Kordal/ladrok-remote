@@ -60,7 +60,7 @@ object HidReports {
         0x95, 0x01,       //   Report Count (1)
         0x81, 0x00,       //   Input (Data, Array, Absolute)
         0xC0,             // End Collection
-        // Mouse: three buttons, then relative X, Y and wheel, each -127..127. Android shows a pointer for it.
+        // Mouse: three buttons, then relative X, Y, wheel and sideways wheel (pan), each -127..127. Android shows a pointer for it.
         0x05, 0x01,       // Usage Page (Generic Desktop)
         0x09, 0x02,       // Usage (Mouse)
         0xA1, 0x01,       // Collection (Application)
@@ -86,6 +86,13 @@ object HidReports {
         0x25, 0x7F,       //     Logical Maximum (127)
         0x75, 0x08,       //     Report Size (8)
         0x95, 0x03,       //     Report Count (3)
+        0x81, 0x06,       //     Input (Data, Variable, Relative)
+        0x05, 0x0C,       //     Usage Page (Consumer)
+        0x0A, 0x38, 0x02, //     Usage (AC Pan): the sideways wheel
+        0x15, 0x81,       //     Logical Minimum (-127)
+        0x25, 0x7F,       //     Logical Maximum (127)
+        0x75, 0x08,       //     Report Size (8)
+        0x95, 0x01,       //     Report Count (1)
         0x81, 0x06,       //     Input (Data, Variable, Relative)
         0xC0,             //   End Collection
         0xC0,             // End Collection
@@ -115,9 +122,14 @@ object HidReports {
         listOf(keyboard(modifiers, usage), keyboard(0, 0))
     }
 
-    /** The mouse: [buttons] held, moved by [dx], [dy] and [wheel] (each clamped to -127..127; wheel up is positive). */
-    fun mouse(buttons: Int, dx: Int, dy: Int, wheel: Int = 0) =
-        Report(MOUSE, bytes(buttons, dx.coerceIn(-127, 127), dy.coerceIn(-127, 127), wheel.coerceIn(-127, 127)))
+    /**
+     * The mouse: [buttons] held, moved by [dx], [dy], [wheel] and [pan] (each clamped to -127..127; wheel up and
+     * pan right are positive).
+     */
+    fun mouse(buttons: Int, dx: Int, dy: Int, wheel: Int = 0, pan: Int = 0) = Report(
+        MOUSE,
+        bytes(buttons, dx.coerceIn(-127, 127), dy.coerceIn(-127, 127), wheel.coerceIn(-127, 127), pan.coerceIn(-127, 127)),
+    )
 
     private fun keyboard(modifiers: Int, usage: Int) = Report(KEYBOARD, bytes(modifiers, 0, usage, 0, 0, 0, 0, 0))
 

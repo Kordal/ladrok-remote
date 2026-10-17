@@ -149,7 +149,7 @@ class HidRemote(context: Context) : RemoteTransport {
 
     override fun type(text: String) = HidReports.type(text).forEach(::send)
 
-    override fun mouse(buttons: Int, dx: Int, dy: Int, wheel: Int) = send(HidReports.mouse(buttons, dx, dy, wheel))
+    override fun mouse(buttons: Int, dx: Int, dy: Int, wheel: Int, pan: Int) = send(HidReports.mouse(buttons, dx, dy, wheel, pan))
 
     private fun send(report: Report) {
         val hid = hid ?: return
