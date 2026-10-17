@@ -21,7 +21,7 @@ The Remote's digits 1–9, three by three. They mirror the Keypad of the Launche
 _Avoid_: Number pad, numpad
 
 **Pointer**:
-The Remote as an air mouse: turning the phone moves the TV's mouse pointer, while a thumb is on the pad or, switched on, without one. A tap clicks, sliding scrolls.
+The Remote as an air mouse: turning the phone moves the TV's mouse pointer, while a thumb is on the pad or, switched on, without one. A tap clicks, sliding scrolls, holding still drags.
 _Avoid_: Air mouse (in UI text), cursor, touchpad
 
 **Type**:

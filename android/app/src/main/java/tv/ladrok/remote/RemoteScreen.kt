@@ -5,6 +5,7 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.os.SystemClock
 import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
@@ -380,7 +381,7 @@ private fun Keypad(actions: RemoteActions, enabled: Boolean) {
 
 /**
  * The Pointer, an air mouse: turning the phone moves the TV's pointer. A tap on the pad clicks, sliding up or
- * down scrolls. Off, the pointer moves only while a thumb is on the pad. On, it moves without one, and holds
+ * down scrolls, and holding the pad still for a moment holds the button down, so turning the phone drags. Off, the pointer moves only while a thumb is on the pad. On, it moves without one, and holds
  * still while a thumb is on the pad, so a tap lands where it points. The gyroscope runs only while it moves.
  */
 @Composable
@@ -392,6 +393,8 @@ private fun PointerPad(actions: RemoteActions, enabled: Boolean) {
     val haptic = rememberHaptic()
     val pointer = remember { Pointer() }
     var holding by remember { mutableStateOf(false) }
+    // Holding the pad still for a moment holds the left button down, so turning the phone drags.
+    var dragging by remember { mutableStateOf(false) }
     var on by rememberSaveable { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val notch = with(LocalDensity.current) { SCROLL_NOTCH.toPx() }
@@ -406,13 +409,13 @@ private fun PointerPad(actions: RemoteActions, enabled: Boolean) {
         }
     }
 
-    if (enabled && on != holding) DisposableEffect(Unit) {
+    if (enabled && (dragging || on != holding)) DisposableEffect(Unit) {
         var last = 0L
         val listener = object : SensorEventListener {
             override fun onSensorChanged(event: SensorEvent) {
                 if (last != 0L) {
                     val (dx, dy) = pointer.turn(event.values[0], event.values[2], (event.timestamp - last) / 1e9f)
-                    if (dx != 0 || dy != 0) actions.onMouse(0, dx, dy, 0)
+                    if (dx != 0 || dy != 0) actions.onMouse(if (dragging) HidReports.LEFT_BUTTON else 0, dx, dy, 0)
                 }
                 last = event.timestamp
             }
@@ -463,10 +466,22 @@ private fun PointerPad(actions: RemoteActions, enabled: Boolean) {
                         var scrolling = false
                         try {
                             while (true) {
-                                val change = awaitPointerEvent().changes.firstOrNull { it.id == down.id } ?: break
+                                val event = if (scrolling || dragging) awaitPointerEvent() else
+                                    withTimeoutOrNull((HOLD_MS - (SystemClock.uptimeMillis() - down.uptimeMillis)).coerceAtLeast(1)) { awaitPointerEvent() }
+                                if (event == null) {
+                                    haptic()
+                                    dragging = true
+                                    actions.onMouse(HidReports.LEFT_BUTTON, 0, 0, 0)
+                                    continue
+                                }
+                                val change = event.changes.firstOrNull { it.id == down.id } ?: break
                                 if (!change.pressed) {
-                                    if (!scrolling && change.uptimeMillis - down.uptimeMillis < TAP_MS) click()
+                                    if (!scrolling && !dragging && change.uptimeMillis - down.uptimeMillis < TAP_MS) click()
                                     break
+                                }
+                                if (dragging) {
+                                    change.consume()
+                                    continue
                                 }
                                 // Finger down the pad scrolls up the TV, like a touch screen.
                                 slid += change.position.y - y
@@ -480,6 +495,8 @@ private fun PointerPad(actions: RemoteActions, enabled: Boolean) {
                                 change.consume()
                             }
                         } finally {
+                            if (dragging) actions.onMouse(0, 0, 0, 0)
+                            dragging = false
                             holding = false
                         }
                     }
@@ -503,6 +520,7 @@ private fun PointerPad(actions: RemoteActions, enabled: Boolean) {
 
 /** Longer than this, a touch on the pad is aiming, not a click. */
 private const val TAP_MS = 250L
+private const val HOLD_MS = 450L
 private const val CLICK_MS = 40L
 
 /** How far a finger slides on the pad for one notch of the TV's scroll wheel. */
