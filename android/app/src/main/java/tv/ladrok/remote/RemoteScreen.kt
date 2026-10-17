@@ -43,6 +43,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -79,6 +80,8 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 // The Ladrok palette, as in the Launcher: on pure black like the boot animation.
 private val Black = Color(0xFF000000)
@@ -376,8 +379,9 @@ private fun Keypad(actions: RemoteActions, enabled: Boolean) {
 }
 
 /**
- * The Pointer, an air mouse: while a thumb is on the pad, turning the phone moves the TV's pointer. A tap
- * clicks, sliding up or down scrolls. The gyroscope runs only while the pad is held.
+ * The Pointer, an air mouse: turning the phone moves the TV's pointer. A tap on the pad clicks, sliding up or
+ * down scrolls. Off, the pointer moves only while a thumb is on the pad. On, it moves without one, and holds
+ * still while a thumb is on the pad, so a tap lands where it points. The gyroscope runs only while it moves.
  */
 @Composable
 private fun PointerPad(actions: RemoteActions, enabled: Boolean) {
@@ -388,15 +392,21 @@ private fun PointerPad(actions: RemoteActions, enabled: Boolean) {
     val haptic = rememberHaptic()
     val pointer = remember { Pointer() }
     var holding by remember { mutableStateOf(false) }
+    var on by rememberSaveable { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
     val notch = with(LocalDensity.current) { SCROLL_NOTCH.toPx() }
     val label = stringResource(R.string.pointer_pad)
     fun click() {
         haptic()
         actions.onMouse(HidReports.LEFT_BUTTON, 0, 0, 0)
-        actions.onMouse(0, 0, 0, 0)
+        // A short press, not a press and release in the same instant, which some apps miss.
+        scope.launch {
+            delay(CLICK_MS)
+            actions.onMouse(0, 0, 0, 0)
+        }
     }
 
-    if (holding && enabled) DisposableEffect(Unit) {
+    if (enabled && on != holding) DisposableEffect(Unit) {
         var last = 0L
         val listener = object : SensorEventListener {
             override fun onSensorChanged(event: SensorEvent) {
@@ -419,8 +429,20 @@ private fun PointerPad(actions: RemoteActions, enabled: Boolean) {
     Column(
         Modifier.widthIn(max = 360.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(28.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
+        Text(
+            stringResource(if (on) R.string.pointer_on else R.string.pointer_off),
+            color = if (on) Black else Ink,
+            fontSize = 15.sp,
+            modifier = Modifier
+                .clip(CircleShape)
+                .background(if (on) Ink else Raised)
+                .border(BorderStroke(1.dp, if (on) Ink else Line), CircleShape)
+                .semantics { role = Role.Switch }
+                .clickable(enabled = enabled) { haptic(); on = !on }
+                .padding(horizontal = 20.dp, vertical = 10.dp),
+        )
         Box(
             Modifier
                 .fillMaxWidth()
@@ -465,7 +487,7 @@ private fun PointerPad(actions: RemoteActions, enabled: Boolean) {
             contentAlignment = Alignment.Center,
         ) {
             Text(
-                stringResource(R.string.pointer_hint),
+                stringResource(if (on) R.string.pointer_hint_on else R.string.pointer_hint),
                 color = Muted,
                 fontSize = 15.sp,
                 textAlign = TextAlign.Center,
@@ -481,6 +503,7 @@ private fun PointerPad(actions: RemoteActions, enabled: Boolean) {
 
 /** Longer than this, a touch on the pad is aiming, not a click. */
 private const val TAP_MS = 250L
+private const val CLICK_MS = 40L
 
 /** How far a finger slides on the pad for one notch of the TV's scroll wheel. */
 private val SCROLL_NOTCH = 24.dp
