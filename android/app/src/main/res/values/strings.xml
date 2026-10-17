@@ -33,6 +33,7 @@
     <string name="key_volume_up">Volume up</string>
     <string name="key_volume_down">Volume down</string>
     <string name="key_mute">Mute</string>
+    <string name="key_sleep">Sleep timer</string>
 
     <string name="type_hint">Text for the TV</string>
     <string name="send">Send</string>

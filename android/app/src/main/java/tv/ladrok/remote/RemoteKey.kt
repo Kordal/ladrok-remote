@@ -22,6 +22,7 @@ enum class RemoteKey(val page: Page, val usage: Int) {
     VolumeUp(Page.Consumer, 0x00E9),  // VOLUME_UP
     VolumeDown(Page.Consumer, 0x00EA), // VOLUME_DOWN
     Mute(Page.Consumer, 0x00E2),      // VOLUME_MUTE
+    Sleep(Page.Consumer, SLEEP_USAGE), // Ladrok TV's sleep timer key (Kordal/ladrok-tv#24)
     One(Page.Keyboard, 0x1E),
     Two(Page.Keyboard, 0x1F),
     Three(Page.Keyboard, 0x20),
@@ -39,3 +40,6 @@ enum class RemoteKey(val page: Page, val usage: Int) {
         val DIGITS = listOf(One, Two, Three, Four, Five, Six, Seven, Eight, Nine)
     }
 }
+
+/** The usage Ladrok TV's sleep timer listens for: each press cycles Off, 30, 60, 90, 120 min. */
+private const val SLEEP_USAGE = 0x0000
