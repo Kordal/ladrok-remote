@@ -129,7 +129,7 @@ private fun Status(link: Link, tvs: List<Tv>, found: List<Tv>, actions: RemoteAc
                 painterResource(R.drawable.ladrok_logo),
                 contentDescription = null,
                 colorFilter = ColorFilter.tint(Silver),
-                modifier = Modifier.size(width = 28.dp, height = 24.dp),
+                modifier = Modifier.size(width = 21.dp, height = 24.dp),
             )
             Spacer(Modifier.size(12.dp))
             val title = when (link) {

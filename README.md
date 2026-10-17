@@ -1,4 +1,4 @@
-<p align="center"><img src="android/app/src/main/res/drawable-nodpi/ladrok_logo.png" alt="Ladrok" width="160"></p>
+<p align="center"><img src="android/app/src/main/res/drawable-nodpi/ladrok_logo.png" alt="Ladrok" width="96"></p>
 
 # Ladrok Remote
 
