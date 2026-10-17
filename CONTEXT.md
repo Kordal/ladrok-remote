@@ -20,6 +20,10 @@ _Avoid_: Button (in code), command
 The Remote's digits 1–9, three by three. They mirror the Keypad of the Launcher (Ladrok TV's home screen, see [ladrok-start](https://github.com/Kordal/ladrok-start/blob/main/CONTEXT.md)): each digit opens the App with that digit.
 _Avoid_: Number pad, numpad
 
+**Pointer**:
+The Remote as an air mouse: while a thumb is on the pad, turning the phone moves the TV's mouse pointer. A tap clicks, sliding scrolls.
+_Avoid_: Air mouse (in UI text), cursor, touchpad
+
 **Type**:
 Sending text to whatever has focus on the TV, such as a search box, as if typed on a keyboard.
 _Avoid_: Keyboard mode, input

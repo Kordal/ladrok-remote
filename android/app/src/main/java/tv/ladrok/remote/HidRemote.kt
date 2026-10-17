@@ -149,6 +149,8 @@ class HidRemote(context: Context) : RemoteTransport {
 
     override fun type(text: String) = HidReports.type(text).forEach(::send)
 
+    override fun mouse(buttons: Int, dx: Int, dy: Int, wheel: Int) = send(HidReports.mouse(buttons, dx, dy, wheel))
+
     private fun send(report: Report) {
         val hid = hid ?: return
         val host = host ?: return
@@ -220,7 +222,7 @@ class HidRemote(context: Context) : RemoteTransport {
             this@HidRemote.hid = hid
             if (!allowed()) return on(LinkEvent.NoPermission)
             val sdp = BluetoothHidDeviceAppSdpSettings(
-                context.getString(R.string.app_name), "Keyboard and remote", "Ladrok",
+                context.getString(R.string.app_name), "Keyboard, remote and pointer", "Ladrok",
                 BluetoothHidDevice.SUBCLASS1_COMBO, HidReports.DESCRIPTOR,
             )
             // Fails when another app is already registered as this phone's HID device.

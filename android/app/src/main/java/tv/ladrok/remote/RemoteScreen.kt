@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 package tv.ladrok.remote
 
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
@@ -8,6 +12,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -33,8 +39,10 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -56,6 +64,8 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -66,6 +76,7 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -77,13 +88,14 @@ private val Ink = Color(0xFFE4E4E4)
 private val Muted = Color(0xFF8A8A8A)
 private val Silver = Color(0xFFCFCFCF)
 
-private enum class Tab { Remote, Keypad, Type }
+private enum class Tab { Remote, Keypad, Pointer, Type }
 
 /** What the Remote screen can ask for, beyond the keys themselves. */
 class RemoteActions(
     val onPress: (RemoteKey) -> Unit,
     val onRelease: (RemoteKey) -> Unit,
     val onType: (String) -> Unit,
+    val onMouse: (buttons: Int, dx: Int, dy: Int, wheel: Int) -> Unit,
     val onConnect: (Tv) -> Unit,
     val onDisconnect: () -> Unit,
     val onSearch: () -> Unit,
@@ -94,7 +106,7 @@ class RemoteActions(
 
 /**
  * The Remote: who it's connected to at the top, then the Remote keys (D-pad, Back, Home, playback, volume),
- * the Keypad (digits 1–9 open the Launcher's Tiles) or Type, chosen at the bottom.
+ * the Keypad (digits 1–9 open the Launcher's Tiles), the Pointer (an air mouse) or Type, chosen at the bottom.
  */
 @Composable
 fun RemoteScreen(link: Link, tvs: List<Tv>, found: List<Tv>, actions: RemoteActions) {
@@ -111,12 +123,17 @@ fun RemoteScreen(link: Link, tvs: List<Tv>, found: List<Tv>, actions: RemoteActi
         Status(link, tvs, found, actions)
         Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
             // The keys stay where they are, quiet, until a TV is connected.
-            // Scrolls only when the phone is turned sideways and the keys don't fit.
-            Box(Modifier.verticalScroll(rememberScrollState()).padding(vertical = 16.dp).alpha(if (connected) 1f else 0.3f)) {
-                when (tab) {
-                    Tab.Remote -> RemoteKeys(actions, connected)
-                    Tab.Keypad -> Keypad(actions, connected)
-                    Tab.Type -> TypeBox(actions, connected)
+            if (tab == Tab.Pointer) {
+                // No scrolling here: sliding on the pad scrolls the TV.
+                Box(Modifier.padding(vertical = 16.dp).alpha(if (connected) 1f else 0.3f)) { PointerPad(actions, connected) }
+            } else {
+                // Scrolls only when the phone is turned sideways and the keys don't fit.
+                Box(Modifier.verticalScroll(rememberScrollState()).padding(vertical = 16.dp).alpha(if (connected) 1f else 0.3f)) {
+                    when (tab) {
+                        Tab.Remote -> RemoteKeys(actions, connected)
+                        Tab.Keypad -> Keypad(actions, connected)
+                        else -> TypeBox(actions, connected)
+                    }
                 }
             }
         }
@@ -197,7 +214,7 @@ private fun Tabs(tab: Tab, onTab: (Tab) -> Unit) {
         Modifier.fillMaxWidth().padding(top = 12.dp),
         horizontalArrangement = Arrangement.SpaceEvenly,
     ) {
-        for ((t, label) in listOf(Tab.Remote to R.string.tab_remote, Tab.Keypad to R.string.tab_keypad, Tab.Type to R.string.tab_type)) {
+        for ((t, label) in listOf(Tab.Remote to R.string.tab_remote, Tab.Keypad to R.string.tab_keypad, Tab.Pointer to R.string.tab_pointer, Tab.Type to R.string.tab_type)) {
             Text(
                 stringResource(label),
                 color = if (t == tab) Ink else Muted,
@@ -357,6 +374,116 @@ private fun Keypad(actions: RemoteActions, enabled: Boolean) {
         }
     }
 }
+
+/**
+ * The Pointer, an air mouse: while a thumb is on the pad, turning the phone moves the TV's pointer. A tap
+ * clicks, sliding up or down scrolls. The gyroscope runs only while the pad is held.
+ */
+@Composable
+private fun PointerPad(actions: RemoteActions, enabled: Boolean) {
+    val context = LocalContext.current
+    val sensors = remember { context.getSystemService(SensorManager::class.java) }
+    val gyroscope = remember { sensors?.getDefaultSensor(Sensor.TYPE_GYROSCOPE) }
+    if (sensors == null || gyroscope == null) return Note(stringResource(R.string.no_gyroscope))
+    val haptic = rememberHaptic()
+    val pointer = remember { Pointer() }
+    var holding by remember { mutableStateOf(false) }
+    val notch = with(LocalDensity.current) { SCROLL_NOTCH.toPx() }
+    val label = stringResource(R.string.pointer_pad)
+    fun click() {
+        haptic()
+        actions.onMouse(HidReports.LEFT_BUTTON, 0, 0, 0)
+        actions.onMouse(0, 0, 0, 0)
+    }
+
+    if (holding && enabled) DisposableEffect(Unit) {
+        var last = 0L
+        val listener = object : SensorEventListener {
+            override fun onSensorChanged(event: SensorEvent) {
+                if (last != 0L) {
+                    val (dx, dy) = pointer.turn(event.values[0], event.values[2], (event.timestamp - last) / 1e9f)
+                    if (dx != 0 || dy != 0) actions.onMouse(0, dx, dy, 0)
+                }
+                last = event.timestamp
+            }
+
+            override fun onAccuracyChanged(sensor: Sensor, accuracy: Int) = Unit
+        }
+        sensors.registerListener(listener, gyroscope, SensorManager.SENSOR_DELAY_GAME)
+        onDispose {
+            sensors.unregisterListener(listener)
+            pointer.reset()
+        }
+    }
+
+    Column(
+        Modifier.widthIn(max = 360.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(28.dp),
+    ) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .aspectRatio(0.9f)
+                .raised(RoundedCornerShape(24.dp))
+                .semantics {
+                    contentDescription = label
+                    role = Role.Button
+                    onClick { if (enabled) click(); enabled }
+                }
+                .pointerInput(enabled) {
+                    if (!enabled) return@pointerInput
+                    awaitEachGesture {
+                        val down = awaitFirstDown()
+                        holding = true
+                        var y = down.position.y
+                        var slid = 0f
+                        var scrolling = false
+                        try {
+                            while (true) {
+                                val change = awaitPointerEvent().changes.firstOrNull { it.id == down.id } ?: break
+                                if (!change.pressed) {
+                                    if (!scrolling && change.uptimeMillis - down.uptimeMillis < TAP_MS) click()
+                                    break
+                                }
+                                // Finger down the pad scrolls up the TV, like a touch screen.
+                                slid += change.position.y - y
+                                y = change.position.y
+                                if (kotlin.math.abs(slid) > viewConfiguration.touchSlop) scrolling = true
+                                val notches = if (scrolling) (slid / notch).toInt() else 0
+                                if (notches != 0) {
+                                    actions.onMouse(0, 0, 0, notches)
+                                    slid -= notches * notch
+                                }
+                                change.consume()
+                            }
+                        } finally {
+                            holding = false
+                        }
+                    }
+                },
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                stringResource(R.string.pointer_hint),
+                color = Muted,
+                fontSize = 15.sp,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(32.dp),
+            )
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+            RoundKey(RemoteKey.Back, stringResource(R.string.key_back), enabled, actions, haptic) { drawBack(it) }
+            RoundKey(RemoteKey.Home, stringResource(R.string.key_home), enabled, actions, haptic) { drawHome(it) }
+        }
+    }
+}
+
+/** Longer than this, a touch on the pad is aiming, not a click. */
+private const val TAP_MS = 250L
+
+/** How far a finger slides on the pad for one notch of the TV's scroll wheel. */
+private val SCROLL_NOTCH = 24.dp
 
 /** Type: text goes to whatever has focus on the TV, such as a search box. */
 @Composable

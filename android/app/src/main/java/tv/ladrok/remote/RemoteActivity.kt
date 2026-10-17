@@ -35,6 +35,7 @@ class RemoteActivity : ComponentActivity() {
             onPress = remote::press,
             onRelease = remote::release,
             onType = remote::type,
+            onMouse = remote::mouse,
             onConnect = remote::connect,
             onDisconnect = remote::disconnect,
             onSearch = remote::search,
