@@ -38,7 +38,7 @@ Emulators have no shared Bluetooth with real devices; use a phone.
 
 ## Releases
 
-Push a tag such as `v1.0.0`. CI builds `LadrokRemote.apk`, signs it with the release key (repo secrets `LADROK_KEYSTORE_B64` and `LADROK_KEYSTORE_PASSWORD`) and attaches it with its SHA-256 to a GitHub Release.
+Push a tag such as `v1.0.0`. CI builds `LadrokRemote.apk`, signs it with the Launcher's release key (repo secrets, the same as ladrok-start's: `LADROK_KEYSTORE_B64` and `LADROK_KEYSTORE_PASSWORD`) and attaches it with its SHA-256 to a GitHub Release.
 
 ## License
 
