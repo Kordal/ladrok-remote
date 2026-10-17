@@ -8,21 +8,26 @@ The phone acts as a Bluetooth keyboard and remote, so the TV sees an ordinary Bl
 
 Terms are defined in [CONTEXT.md](CONTEXT.md), decisions in [docs/adr](docs/adr), the keys in [docs/protocol.md](docs/protocol.md).
 
+## Install
+
+On an Android phone (Android 12 or newer), download `LadrokRemote.apk` from the [latest release](https://github.com/Kordal/ladrok-remote/releases/latest) and open it. Allow installing from your browser or file manager when asked.
+
 ## Pair
 
-1. On the TV: Settings › Remotes & accessories › Add accessory.
+1. On the TV: Settings › Remotes & Accessories › Add accessory.
 2. In the Remote: *Pair a TV*, then choose the TV.
 3. Check the code is the same on both, and confirm on both.
 
 After that the Remote connects to the same TV whenever it opens.
 
-The TV makes the first connection after pairing (Ladrok TV's LadrokRemoteHelper, see [ADR 0001](docs/adr/0001-the-remote-is-a-bluetooth-keyboard.md)). A stock Android TV doesn't, so there the Remote pairs but its keys are refused.
+The TV makes the first connection after pairing (Ladrok TV's LadrokRemoteHelper, in builds from 20261016.2352 on, see [ADR 0001](docs/adr/0001-the-remote-is-a-bluetooth-keyboard.md)). A stock Android TV doesn't, so there the Remote pairs but its keys are refused.
 
 ## Status
 
 - Unit-tested: the HID reports and descriptor, the Link state machine, which devices count as TVs.
 - Tried on emulators: permissions, search, pairing with an Android TV emulator, which then refuses the keys (a stock Android TV).
 - Tried on a phone with a Ladrok TV (Pi 5) on 2026-10-17: pairs, and the arrows and OK move focus on the TV.
+- Not tried yet: reconnecting when the Remote is reopened, or after the TV reboots; the other Keys and Type on a Ladrok TV.
 
 ## Build and run
 
