@@ -39,5 +39,5 @@ interface RemoteTransport {
     fun type(text: String)
 
     /** Moves the TV's pointer, with [buttons] held (see [HidReports.mouse]). */
-    fun mouse(buttons: Int, dx: Int, dy: Int, wheel: Int = 0)
+    fun mouse(buttons: Int, dx: Int, dy: Int, wheel: Int = 0, pan: Int = 0)
 }

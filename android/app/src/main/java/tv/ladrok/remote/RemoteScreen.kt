@@ -99,7 +99,7 @@ class RemoteActions(
     val onPress: (RemoteKey) -> Unit,
     val onRelease: (RemoteKey) -> Unit,
     val onType: (String) -> Unit,
-    val onMouse: (buttons: Int, dx: Int, dy: Int, wheel: Int) -> Unit,
+    val onMouse: (buttons: Int, dx: Int, dy: Int, wheel: Int, pan: Int) -> Unit,
     val onConnect: (Tv) -> Unit,
     val onDisconnect: () -> Unit,
     val onSearch: () -> Unit,
@@ -381,7 +381,7 @@ private fun Keypad(actions: RemoteActions, enabled: Boolean) {
 
 /**
  * The Pointer, an air mouse: turning the phone moves the TV's pointer. A tap on the pad clicks, sliding up or
- * down scrolls, and holding the pad still for a moment holds the button down, so turning the phone drags. Off, the pointer moves only while a thumb is on the pad. On, it moves without one, and holds
+ * down scrolls, sliding sideways pans, and holding the pad still for a moment holds the button down, so turning the phone drags. Off, the pointer moves only while a thumb is on the pad. On, it moves without one, and holds
  * still while a thumb is on the pad, so a tap lands where it points. The gyroscope runs only while it moves.
  */
 @Composable
@@ -401,11 +401,11 @@ private fun PointerPad(actions: RemoteActions, enabled: Boolean) {
     val label = stringResource(R.string.pointer_pad)
     fun click() {
         haptic()
-        actions.onMouse(HidReports.LEFT_BUTTON, 0, 0, 0)
+        actions.onMouse(HidReports.LEFT_BUTTON, 0, 0, 0, 0)
         // A short press, not a press and release in the same instant, which some apps miss.
         scope.launch {
             delay(CLICK_MS)
-            actions.onMouse(0, 0, 0, 0)
+            actions.onMouse(0, 0, 0, 0, 0)
         }
     }
 
@@ -415,7 +415,7 @@ private fun PointerPad(actions: RemoteActions, enabled: Boolean) {
             override fun onSensorChanged(event: SensorEvent) {
                 if (last != 0L) {
                     val (dx, dy) = pointer.turn(event.values[0], event.values[2], (event.timestamp - last) / 1e9f)
-                    if (dx != 0 || dy != 0) actions.onMouse(if (dragging) HidReports.LEFT_BUTTON else 0, dx, dy, 0)
+                    if (dx != 0 || dy != 0) actions.onMouse(if (dragging) HidReports.LEFT_BUTTON else 0, dx, dy, 0, 0)
                 }
                 last = event.timestamp
             }
@@ -461,41 +461,55 @@ private fun PointerPad(actions: RemoteActions, enabled: Boolean) {
                     awaitEachGesture {
                         val down = awaitFirstDown()
                         holding = true
-                        var y = down.position.y
-                        var slid = 0f
-                        var scrolling = false
+                        var at = down.position
+                        var slidX = 0f
+                        var slidY = 0f
+                        // Set once the thumb has slid past the touch slop: true for sideways, false for up and down.
+                        var sideways: Boolean? = null
                         try {
                             while (true) {
-                                val event = if (scrolling || dragging) awaitPointerEvent() else
+                                val event = if (sideways != null || dragging) awaitPointerEvent() else
                                     withTimeoutOrNull((HOLD_MS - (SystemClock.uptimeMillis() - down.uptimeMillis)).coerceAtLeast(1)) { awaitPointerEvent() }
                                 if (event == null) {
                                     haptic()
                                     dragging = true
-                                    actions.onMouse(HidReports.LEFT_BUTTON, 0, 0, 0)
+                                    actions.onMouse(HidReports.LEFT_BUTTON, 0, 0, 0, 0)
                                     continue
                                 }
                                 val change = event.changes.firstOrNull { it.id == down.id } ?: break
                                 if (!change.pressed) {
-                                    if (!scrolling && !dragging && change.uptimeMillis - down.uptimeMillis < TAP_MS) click()
+                                    if (sideways == null && !dragging && change.uptimeMillis - down.uptimeMillis < TAP_MS) click()
                                     break
                                 }
                                 if (dragging) {
                                     change.consume()
                                     continue
                                 }
-                                // Finger down the pad scrolls up the TV, like a touch screen.
-                                slid += change.position.y - y
-                                y = change.position.y
-                                if (kotlin.math.abs(slid) > viewConfiguration.touchSlop) scrolling = true
-                                val notches = if (scrolling) (slid / notch).toInt() else 0
-                                if (notches != 0) {
-                                    actions.onMouse(0, 0, 0, notches)
-                                    slid -= notches * notch
+                                // The TV's page follows the thumb, like a touch screen: thumb down scrolls up, thumb
+                                // right pans left. A slide keeps the direction it started in.
+                                slidX += change.position.x - at.x
+                                slidY += change.position.y - at.y
+                                at = change.position
+                                if (sideways == null && (slidX * slidX + slidY * slidY) > viewConfiguration.touchSlop * viewConfiguration.touchSlop) {
+                                    sideways = kotlin.math.abs(slidX) > kotlin.math.abs(slidY)
+                                }
+                                if (sideways == true) {
+                                    val notches = (slidX / notch).toInt()
+                                    if (notches != 0) {
+                                        actions.onMouse(0, 0, 0, 0, -notches)
+                                        slidX -= notches * notch
+                                    }
+                                } else if (sideways == false) {
+                                    val notches = (slidY / notch).toInt()
+                                    if (notches != 0) {
+                                        actions.onMouse(0, 0, 0, notches, 0)
+                                        slidY -= notches * notch
+                                    }
                                 }
                                 change.consume()
                             }
                         } finally {
-                            if (dragging) actions.onMouse(0, 0, 0, 0)
+                            if (dragging) actions.onMouse(0, 0, 0, 0, 0)
                             dragging = false
                             holding = false
                         }
