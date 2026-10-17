@@ -59,7 +59,7 @@ class HidReportsTest {
     fun anIdleReportHoldsNothingAndMatchesTheReleases() {
         assertEquals(HidReports.release(RemoteKey.Up), HidReports.idle(HidReports.KEYBOARD))
         assertEquals(HidReports.release(RemoteKey.Home), HidReports.idle(HidReports.CONSUMER))
-        assertEquals(null, HidReports.idle(3))
+        assertEquals(null, HidReports.idle(4))
     }
 
     @Test
