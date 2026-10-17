@@ -18,7 +18,12 @@
 
     <string name="tab_remote">Remote</string>
     <string name="tab_keypad">Keypad</string>
+    <string name="tab_pointer">Pointer</string>
     <string name="tab_type">Type</string>
+
+    <string name="pointer_hint">Hold here and point the phone to move the pointer. Tap to click, slide to scroll.</string>
+    <string name="pointer_pad">Pointer pad</string>
+    <string name="no_gyroscope">This phone has no gyroscope, so it can\'t move a pointer.</string>
 
     <string name="key_up">Up</string>
     <string name="key_down">Down</string>

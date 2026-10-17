@@ -37,4 +37,7 @@ interface RemoteTransport {
 
     /** Types [text] into whatever has focus on the TV, such as a search box. */
     fun type(text: String)
+
+    /** Moves the TV's pointer, with [buttons] held (see [HidReports.mouse]). */
+    fun mouse(buttons: Int, dx: Int, dy: Int, wheel: Int = 0)
 }
