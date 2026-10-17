@@ -16,13 +16,13 @@ Terms are defined in [CONTEXT.md](CONTEXT.md), decisions in [docs/adr](docs/adr)
 
 After that the Remote connects to the same TV whenever it opens.
 
-**Ladrok TV needs to connect first after pairing** (see [ADR 0001](docs/adr/0001-the-remote-is-a-bluetooth-keyboard.md)). That part of Ladrok TV isn't built yet, so for now the Remote pairs but the TV doesn't accept its keys.
+The TV makes the first connection after pairing (Ladrok TV's LadrokRemoteHelper, see [ADR 0001](docs/adr/0001-the-remote-is-a-bluetooth-keyboard.md)). A stock Android TV doesn't, so there the Remote pairs but its keys are refused.
 
 ## Status
 
 - Unit-tested: the HID reports and descriptor, the Link state machine, which devices count as TVs.
-- Tried on emulators: permissions, search, pairing with an Android TV emulator. The TV then rejects the connection, as described above.
-- **Not tried on a real phone or a real TV yet.**
+- Tried on emulators: permissions, search, pairing with an Android TV emulator, which then refuses the keys (a stock Android TV).
+- Tried on a phone with a Ladrok TV (Pi 5) on 2026-10-17: pairs, and the arrows and OK move focus on the TV.
 
 ## Build and run
 

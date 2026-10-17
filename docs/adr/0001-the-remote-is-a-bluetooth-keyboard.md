@@ -12,6 +12,6 @@ Tested on 2026-10-16 with two emulators (an Android 17 phone and an Android 16 A
 - That screen makes the TV discoverable, so the **Remote searches instead**, finds the TV and pairs. Both show the same code. This works.
 - The phone then connects as a HID device, and **the TV rejects it**: `btif_hh: Reject Incoming HID Connection`. Android's HID host only accepts incoming connections from devices it has connected to itself, and TV Settings has no Connect action for a paired device.
 
-So the TV has to make the first HID connection after pairing. Ladrok TV will do that with a small platform-signed app in `device/brcm/rpi5` (like LadrokSetup): when a newly paired device's UUIDs include HID (0x1124), it connects the HID host to it. From then on the TV keeps the device's HID details, and the Remote reconnects by itself.
+So the TV has to make the first HID connection after pairing. Ladrok TV does that with LadrokRemoteHelper, a small platform-signed app in `device/brcm/rpi5` (Kordal/ladrok-tv#18): when a newly paired device's UUIDs include HID (0x1124), it allows the HID host connection, which connects it. From then on the TV keeps the device's HID details, and the Remote reconnects by itself. On 2026-10-17 a phone paired with a Ladrok TV this way, and its arrows and OK moved focus.
 
 A stock Android TV doesn't do this, so the Remote is for Ladrok TV.
