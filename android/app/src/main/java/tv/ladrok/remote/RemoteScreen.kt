@@ -121,7 +121,10 @@ fun RemoteScreen(link: Link, tvs: List<Tv>, found: List<Tv>, actions: RemoteActi
             .fillMaxSize()
             .background(Black)
             .safeDrawingPadding()
-            .padding(horizontal = 24.dp, vertical = 16.dp),
+            // The thin light outline that frames Ladrok's pictures on ladrok.com, around the whole app.
+            .padding(8.dp)
+            .border(BorderStroke(1.dp, Line), RoundedCornerShape(20.dp))
+            .padding(horizontal = 16.dp, vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Status(link, tvs, found, actions)
