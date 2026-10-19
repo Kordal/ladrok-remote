@@ -5,12 +5,13 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
-// Release signing: one fixed key, so each new APK installs over the old one. The Remote shares the
-// Launcher's key. In CI it comes from the repo's secrets (see .github/workflows/release.yml);
-// on your computer from ~/.config/ladrok/launcher-signing.properties (or LADROK_SIGNING=<file>).
+// Release signing: one fixed key, so each new APK installs over the old one. The Remote has its own
+// key (alias ladrok-remote), the same one Google Play signs with, so the GitHub APK and the Play
+// install update each other. In CI it comes from the repo's secrets (see .github/workflows/release.yml);
+// on your computer from ~/.config/ladrok/remote-signing.properties (or LADROK_SIGNING=<file>).
 val signing = Properties().apply {
     val file = System.getenv("LADROK_SIGNING")?.let(::file)
-        ?: file("${System.getProperty("user.home")}/.config/ladrok/launcher-signing.properties")
+        ?: file("${System.getProperty("user.home")}/.config/ladrok/remote-signing.properties")
     if (file.exists()) file.inputStream().use { load(it) }
     System.getenv("LADROK_KEYSTORE")?.let { setProperty("storeFile", it) }
     System.getenv("LADROK_KEYSTORE_PASSWORD")?.let { setProperty("storePassword", it); setProperty("keyPassword", it) }
@@ -35,7 +36,7 @@ android {
         if (signing.getProperty("storeFile") != null) create("release") {
             storeFile = file(signing.getProperty("storeFile"))
             storePassword = signing.getProperty("storePassword")
-            keyAlias = signing.getProperty("keyAlias") ?: "ladrok-launcher"
+            keyAlias = signing.getProperty("keyAlias") ?: "ladrok-remote"
             keyPassword = signing.getProperty("keyPassword")
         }
     }
