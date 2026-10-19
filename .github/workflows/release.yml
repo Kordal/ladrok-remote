@@ -1,7 +1,12 @@
 # On a version tag (v1.2.0), or run by hand with a version (Actions > Release > Run workflow,
-# which tags the commit it runs on): tests, then a release-signed LadrokRemote.apk attached to a GitHub
-# Release together with its SHA-256.
-# Repo secrets: LADROK_KEYSTORE_B64 (base64 of the .jks) and LADROK_KEYSTORE_PASSWORD.
+# which tags the commit it runs on): tests, then a release-signed LadrokRemote.apk and LadrokRemote.aab
+# (the bundle Google Play takes) attached to a GitHub Release together with their SHA-256. Both come from
+# the same build, so they share one versionCode.
+# Repo secrets: LADROK_KEYSTORE_B64 (base64 of the .jks) and LADROK_KEYSTORE_PASSWORD; optional
+# LADROK_KEY_ALIAS when the key isn't "ladrok-launcher".
+# Google Play: when the PLAY_SERVICE_ACCOUNT_JSON secret is set, the bundle also goes to Play, on the track
+# in the PLAY_TRACK repo variable (default internal) with the release status in PLAY_STATUS (default
+# completed; use draft while the app has never been published). Without the secret this step is skipped.
 name: Release
 
 on:
@@ -50,19 +55,40 @@ jobs:
       - name: Build
         env:
           LADROK_KEYSTORE_PASSWORD: ${{ secrets.LADROK_KEYSTORE_PASSWORD }}
+          LADROK_KEY_ALIAS: ${{ secrets.LADROK_KEY_ALIAS }}
           LADROK_VERSION: ${{ env.VERSION }}
-        run: ./gradlew assembleRelease --console=plain
+        run: ./gradlew assembleRelease bundleRelease --console=plain
 
       - name: Publish
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           cp app/build/outputs/apk/release/app-release.apk LadrokRemote.apk
+          cp app/build/outputs/bundle/release/app-release.aab LadrokRemote.aab
           sha256sum LadrokRemote.apk > LadrokRemote.apk.sha256
+          sha256sum LadrokRemote.aab > LadrokRemote.aab.sha256
           case "$VERSION" in v[0-9]*) ;; *) echo "Version must look like v1.2.0, not $VERSION" >&2; exit 1;; esac
           # From a tag push the tag exists; from a manual run gh creates it on this commit.
-          gh release create "$VERSION" LadrokRemote.apk LadrokRemote.apk.sha256 \
+          gh release create "$VERSION" LadrokRemote.apk LadrokRemote.apk.sha256 LadrokRemote.aab LadrokRemote.aab.sha256 \
             --title "Ladrok Remote $VERSION" --notes "Built from ${GITHUB_SHA::7}." --target "$GITHUB_SHA"
+
+      - name: Google Play
+        id: play
+        env:
+          PLAY_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: if [ -n "$PLAY_JSON" ]; then echo "upload=true" >> "$GITHUB_OUTPUT"; else echo "No PLAY_SERVICE_ACCOUNT_JSON secret, skipping Google Play"; fi
+
+      - name: Upload to Google Play
+        if: steps.play.outputs.upload == 'true'
+        uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1.1.5
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: tv.ladrok.remote
+          releaseFiles: android/LadrokRemote.aab
+          releaseName: ${{ env.VERSION }}
+          track: ${{ vars.PLAY_TRACK || 'internal' }}
+          status: ${{ vars.PLAY_STATUS || 'completed' }}
+          mappingFile: android/app/build/outputs/mapping/release/mapping.txt
 
       - name: Clean up
         if: always()

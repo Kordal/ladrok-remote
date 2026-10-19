@@ -14,6 +14,7 @@ val signing = Properties().apply {
     if (file.exists()) file.inputStream().use { load(it) }
     System.getenv("LADROK_KEYSTORE")?.let { setProperty("storeFile", it) }
     System.getenv("LADROK_KEYSTORE_PASSWORD")?.let { setProperty("storePassword", it); setProperty("keyPassword", it) }
+    System.getenv("LADROK_KEY_ALIAS")?.takeIf { it.isNotEmpty() }?.let { setProperty("keyAlias", it) }
 }
 // CI sets these from the tag (v1.2.0) and the run number, so every release is an update.
 val buildNumber = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 1
