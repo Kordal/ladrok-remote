@@ -18,9 +18,9 @@
     <string name="settings">Settings</string>
     <string name="minimized">When the Remote is minimized</string>
     <string name="stay_connected">Stay connected</string>
-    <string name="stay_connected_note">The phone stays the TV\'s remote, with a notification to Disconnect.</string>
+    <string name="stay_connected_note">The phone stays the TV\'s remote, with a notification to Disconnect. While it\'s connected, the TV counts the phone as its keyboard, so the TV\'s own on-screen keyboard doesn\'t show up.</string>
     <string name="only_open">Only while open</string>
-    <string name="only_open_note">The Remote lets go of the TV, and reconnects when you open it.</string>
+    <string name="only_open_note">The Remote lets go of the TV when you leave it, so the TV\'s on-screen keyboard shows up again. It reconnects when you open the Remote.</string>
     <string name="notification_channel">Connected to a TV</string>
     <string name="notification_connected">Connected to %1$s</string>
     <string name="notification_text">The phone stays the TV\'s remote and keyboard. Disconnect when you\'re done.</string>
