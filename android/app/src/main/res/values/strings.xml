@@ -15,6 +15,9 @@
     <string name="stop">Stop</string>
     <string name="connecting">Connecting to %1$s…</string>
     <string name="disconnect">Disconnect</string>
+    <string name="notification_channel">Connected to a TV</string>
+    <string name="notification_connected">Connected to %1$s</string>
+    <string name="notification_text">The phone stays the TV\'s remote and keyboard. Disconnect when you\'re done.</string>
 
     <string name="tab_remote">Remote</string>
     <string name="tab_keypad">Keypad</string>
