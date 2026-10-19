@@ -136,7 +136,7 @@ fun RemoteScreen(link: Link, tvs: List<Tv>, found: List<Tv>, stayConnected: Bool
         Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
             // The keys stay where they are, quiet, until a TV is connected.
             if (settings) {
-                Box(Modifier.verticalScroll(rememberScrollState()).padding(vertical = 16.dp)) { Settings(stayConnected, actions) }
+                Box(Modifier.verticalScroll(rememberScrollState()).padding(vertical = 16.dp)) { Settings(link, stayConnected, actions) }
             } else if (tab == Tab.Pointer) {
                 // No scrolling here: sliding on the pad scrolls the TV.
                 Box(Modifier.padding(vertical = 16.dp).alpha(if (connected) 1f else 0.3f)) { PointerPad(actions, connected) }
@@ -173,7 +173,6 @@ private fun Status(link: Link, tvs: List<Tv>, found: List<Tv>, actions: RemoteAc
                 else -> stringResource(R.string.not_connected)
             }
             Text(title, color = if (link is Link.Connected) Ink else Muted, fontSize = 18.sp, modifier = Modifier.weight(1f))
-            if (link is Link.Connected) Chip(stringResource(R.string.disconnect), onClick = actions.onDisconnect)
             Gear(settings, onSettings)
         }
         when (link) {
@@ -239,11 +238,17 @@ private fun Gear(open: Boolean, onClick: () -> Unit) {
     }
 }
 
-/** Settings: whether the Remote stays connected to the TV while minimized. */
+/** Settings: Disconnect from the TV, and whether the Remote stays connected to it while minimized. */
 @Composable
-private fun Settings(stayConnected: Boolean, actions: RemoteActions) {
+private fun Settings(link: Link, stayConnected: Boolean, actions: RemoteActions) {
     Column(Modifier.widthIn(max = 360.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(stringResource(R.string.settings), color = Ink, fontSize = 18.sp)
+        if (link is Link.Connected) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(stringResource(R.string.notification_connected, link.tv.name), color = Muted, fontSize = 14.sp, modifier = Modifier.weight(1f))
+                Chip(stringResource(R.string.disconnect), onClick = actions.onDisconnect)
+            }
+        }
         Text(stringResource(R.string.minimized), color = Muted, fontSize = 14.sp)
         Choice(stringResource(R.string.stay_connected), stringResource(R.string.stay_connected_note), stayConnected) { actions.onStayConnected(true) }
         Choice(stringResource(R.string.only_open), stringResource(R.string.only_open_note), !stayConnected) { actions.onStayConnected(false) }

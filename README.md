@@ -11,7 +11,7 @@ A remote control for [Ladrok TV](https://github.com/Kordal/ladrok-tv) on your ph
   <img src="docs/screenshots/remote-type.png" alt="Type" width="200">
 </p>
 
-The phone acts as a Bluetooth keyboard and remote, so the TV sees an ordinary Bluetooth accessory. Minimized, the app stays connected to the TV, with a notification to Disconnect; Settings (the gear) can switch that to only while the app is open. While the phone is connected it counts as a keyboard, so the TV doesn't show its own on-screen one.
+The phone acts as a Bluetooth keyboard and remote, so the TV sees an ordinary Bluetooth accessory. Minimized, the app stays connected to the TV, with a notification to Disconnect. Settings (the gear) has Disconnect too, and can switch staying connected to only while the app is open. While the phone is connected it counts as a keyboard, so the TV doesn't show its own on-screen one.
 
 Terms are defined in [CONTEXT.md](CONTEXT.md), decisions in [docs/adr](docs/adr), the keys in [docs/protocol.md](docs/protocol.md).
 
