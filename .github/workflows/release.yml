@@ -2,8 +2,8 @@
 # which tags the commit it runs on): tests, then a release-signed LadrokRemote.apk and LadrokRemote.aab
 # (the bundle Google Play takes) attached to a GitHub Release together with their SHA-256. Both come from
 # the same build, so they share one versionCode.
-# Repo secrets: LADROK_KEYSTORE_B64 (base64 of the .jks) and LADROK_KEYSTORE_PASSWORD; optional
-# LADROK_KEY_ALIAS when the key isn't "ladrok-launcher".
+# Repo secrets: LADROK_KEYSTORE_B64 (base64 of the Remote's own .jks, key alias ladrok-remote) and
+# LADROK_KEYSTORE_PASSWORD.
 # Google Play: when the PLAY_SERVICE_ACCOUNT_JSON secret is set, the bundle also goes to Play, on the track
 # in the PLAY_TRACK repo variable (default internal) with the release status in PLAY_STATUS (default
 # completed; use draft while the app has never been published). Without the secret this step is skipped.
@@ -55,7 +55,6 @@ jobs:
       - name: Build
         env:
           LADROK_KEYSTORE_PASSWORD: ${{ secrets.LADROK_KEYSTORE_PASSWORD }}
-          LADROK_KEY_ALIAS: ${{ secrets.LADROK_KEY_ALIAS }}
           LADROK_VERSION: ${{ env.VERSION }}
         run: ./gradlew assembleRelease bundleRelease --console=plain
 
