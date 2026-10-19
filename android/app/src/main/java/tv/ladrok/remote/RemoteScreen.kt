@@ -7,6 +7,7 @@ import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.os.SystemClock
 import android.view.HapticFeedbackConstants
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
@@ -106,15 +107,19 @@ class RemoteActions(
     val onStopSearching: () -> Unit,
     val onAllow: () -> Unit,
     val onSwitchOn: () -> Unit,
+    val onStayConnected: (Boolean) -> Unit,
 )
 
 /**
  * The Remote: who it's connected to at the top, then the Remote keys (D-pad, Back, Home, playback, volume),
  * the Keypad (digits 1–9 open the Launcher's Tiles), the Pointer (an air mouse) or Type, chosen at the bottom.
+ * The gear at the top opens Settings in their place.
  */
 @Composable
-fun RemoteScreen(link: Link, tvs: List<Tv>, found: List<Tv>, actions: RemoteActions) {
+fun RemoteScreen(link: Link, tvs: List<Tv>, found: List<Tv>, stayConnected: Boolean, actions: RemoteActions) {
     var tab by rememberSaveable { mutableStateOf(Tab.Remote) }
+    var settings by rememberSaveable { mutableStateOf(false) }
+    BackHandler(enabled = settings) { settings = false }
     val connected = link is Link.Connected
     Column(
         Modifier
@@ -127,10 +132,12 @@ fun RemoteScreen(link: Link, tvs: List<Tv>, found: List<Tv>, actions: RemoteActi
             .padding(horizontal = 16.dp, vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Status(link, tvs, found, actions)
+        Status(link, tvs, found, actions, settings) { settings = !settings }
         Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
             // The keys stay where they are, quiet, until a TV is connected.
-            if (tab == Tab.Pointer) {
+            if (settings) {
+                Box(Modifier.verticalScroll(rememberScrollState()).padding(vertical = 16.dp)) { Settings(stayConnected, actions) }
+            } else if (tab == Tab.Pointer) {
                 // No scrolling here: sliding on the pad scrolls the TV.
                 Box(Modifier.padding(vertical = 16.dp).alpha(if (connected) 1f else 0.3f)) { PointerPad(actions, connected) }
             } else {
@@ -144,12 +151,12 @@ fun RemoteScreen(link: Link, tvs: List<Tv>, found: List<Tv>, actions: RemoteActi
                 }
             }
         }
-        Tabs(tab) { tab = it }
+        Tabs(tab.takeUnless { settings }) { tab = it; settings = false }
     }
 }
 
 @Composable
-private fun Status(link: Link, tvs: List<Tv>, found: List<Tv>, actions: RemoteActions) {
+private fun Status(link: Link, tvs: List<Tv>, found: List<Tv>, actions: RemoteActions, settings: Boolean, onSettings: () -> Unit) {
     Column(Modifier.fillMaxWidth().padding(bottom = 8.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Image(
@@ -167,6 +174,7 @@ private fun Status(link: Link, tvs: List<Tv>, found: List<Tv>, actions: RemoteAc
             }
             Text(title, color = if (link is Link.Connected) Ink else Muted, fontSize = 18.sp, modifier = Modifier.weight(1f))
             if (link is Link.Connected) Chip(stringResource(R.string.disconnect), onClick = actions.onDisconnect)
+            Gear(settings, onSettings)
         }
         when (link) {
             Link.Unsupported -> Note(stringResource(R.string.unsupported))
@@ -215,8 +223,55 @@ private fun Chip(label: String, onClick: () -> Unit) {
     )
 }
 
+/** Opens and closes Settings: a drawn gear, bright while Settings are open. */
 @Composable
-private fun Tabs(tab: Tab, onTab: (Tab) -> Unit) {
+private fun Gear(open: Boolean, onClick: () -> Unit) {
+    val label = stringResource(R.string.settings)
+    Box(
+        Modifier
+            .padding(start = 8.dp)
+            .clip(CircleShape)
+            .semantics { contentDescription = label; role = Role.Button }
+            .clickable(onClick = onClick)
+            .padding(8.dp),
+    ) {
+        Canvas(Modifier.size(22.dp)) { drawGear(if (open) Ink else Muted) }
+    }
+}
+
+/** Settings: whether the Remote stays connected to the TV while minimized. */
+@Composable
+private fun Settings(stayConnected: Boolean, actions: RemoteActions) {
+    Column(Modifier.widthIn(max = 360.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(stringResource(R.string.settings), color = Ink, fontSize = 18.sp)
+        Text(stringResource(R.string.minimized), color = Muted, fontSize = 14.sp)
+        Choice(stringResource(R.string.stay_connected), stringResource(R.string.stay_connected_note), stayConnected) { actions.onStayConnected(true) }
+        Choice(stringResource(R.string.only_open), stringResource(R.string.only_open_note), !stayConnected) { actions.onStayConnected(false) }
+    }
+}
+
+/** One of a few choices: a raised row, filled in Ink when chosen, like the Pointer switch. */
+@Composable
+private fun Choice(title: String, note: String, chosen: Boolean, onClick: () -> Unit) {
+    val shape = RoundedCornerShape(16.dp)
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(if (chosen) Ink else Raised)
+            .border(BorderStroke(1.dp, if (chosen) Ink else Line), shape)
+            .semantics { role = Role.RadioButton }
+            .clickable(onClick = onClick)
+            .padding(horizontal = 18.dp, vertical = 14.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Text(title, color = if (chosen) Black else Ink, fontSize = 16.sp)
+        Text(note, color = if (chosen) Raised else Muted, fontSize = 13.sp)
+    }
+}
+
+@Composable
+private fun Tabs(tab: Tab?, onTab: (Tab) -> Unit) {
     Row(
         Modifier.fillMaxWidth().padding(top = 12.dp),
         horizontalArrangement = Arrangement.SpaceEvenly,
@@ -660,6 +715,19 @@ private fun DrawScope.drawMoon(color: Color) {
     val disc = Path().apply { addOval(Rect(Offset(w * 0.1f, h * 0.1f), Size(w * 0.8f, h * 0.8f))) }
     val bite = Path().apply { addOval(Rect(Offset(w * 0.38f, h * 0.0f), Size(w * 0.7f, h * 0.7f))) }
     drawPath(Path.combine(PathOperation.Difference, disc, bite), color, style = stroke())
+}
+
+private fun DrawScope.drawGear(color: Color) {
+    val c = Offset(size.width / 2, size.height / 2)
+    val r = size.minDimension / 2
+    drawCircle(color, r * 0.32f, c, style = stroke())
+    drawCircle(color, r * 0.66f, c, style = stroke())
+    // Eight teeth around the rim.
+    for (i in 0 until 8) {
+        val a = Math.toRadians(i * 45.0)
+        val dir = Offset(kotlin.math.cos(a).toFloat(), kotlin.math.sin(a).toFloat())
+        drawLine(color, c + dir * (r * 0.66f), c + dir * (r * 0.95f), 2.4.dp.toPx(), StrokeCap.Round)
+    }
 }
 
 private fun DrawScope.drawMute(color: Color) {

@@ -20,10 +20,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 /**
  * The Remote's only screen. Minimized while a TV is connected, the Remote stays connected ([RemoteService],
- * with a notification to Disconnect); with no TV connected it lets go of Bluetooth until it's back on screen.
+ * with a notification to Disconnect), unless Settings say to stay connected only while on screen; with no
+ * TV connected it lets go of Bluetooth until it's back on screen.
  */
 class RemoteActivity : ComponentActivity() {
-    private val remote get() = (application as RemoteApp).remote
+    private val app get() = application as RemoteApp
+    private val remote get() = app.remote
 
     private val permissions = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { remote.start() }
     private val enable = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { remote.start() }
@@ -43,14 +45,19 @@ class RemoteActivity : ComponentActivity() {
             onStopSearching = remote::stopSearching,
             onAllow = ::allow,
             onSwitchOn = { enable.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)) },
+            onStayConnected = { app.setStayConnected(it) },
         )
         setContent {
             val link by remote.link.collectAsStateWithLifecycle()
+            val stayConnected by app.stayConnected.collectAsStateWithLifecycle()
             // Started while on screen, as Android only lets a foreground service start then.
-            LaunchedEffect(link is Link.Connected) { if (link is Link.Connected) RemoteService.start(this@RemoteActivity) }
+            val keep = link is Link.Connected && stayConnected
+            LaunchedEffect(keep) {
+                if (keep) RemoteService.start(this@RemoteActivity) else if (!stayConnected) RemoteService.stop(this@RemoteActivity)
+            }
             val tvs by remote.tvs.collectAsStateWithLifecycle()
             val found by remote.found.collectAsStateWithLifecycle()
-            RemoteScreen(link, tvs, found, actions)
+            RemoteScreen(link, tvs, found, stayConnected, actions)
         }
         if (savedInstanceState == null) askPermissions()
     }
@@ -68,14 +75,14 @@ class RemoteActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
-        (application as RemoteApp).visible = true
+        app.visible = true
         remote.start()
     }
 
     override fun onStop() {
-        (application as RemoteApp).visible = false
-        // Connected, the service holds on; otherwise nothing needs Bluetooth while the Remote is away.
-        if (remote.link.value !is Link.Connected) remote.stop()
+        app.visible = false
+        // Connected and set to stay connected, the service holds on; otherwise nothing needs Bluetooth now.
+        if (remote.link.value !is Link.Connected || !app.stayConnected.value) remote.stop()
         super.onStop()
     }
 

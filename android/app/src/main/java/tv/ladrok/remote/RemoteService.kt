@@ -17,7 +17,8 @@ import kotlinx.coroutines.launch
 
 /**
  * Keeps the Remote connected to the TV while it's minimized, with a notification to come back or to
- * Disconnect. It runs only while a TV is connected and stops by itself once the TV is gone.
+ * Disconnect. It runs only while a TV is connected (and Settings say to stay connected) and stops by
+ * itself once the TV is gone.
  */
 class RemoteService : Service() {
     private val scope = MainScope()
@@ -89,6 +90,11 @@ class RemoteService : Service() {
         /** Called while the Remote is on screen, so Android lets a foreground service start. */
         fun start(context: Context) {
             context.startForegroundService(Intent(context, RemoteService::class.java))
+        }
+
+        /** Settings switched to staying connected only while on screen. */
+        fun stop(context: Context) {
+            context.stopService(Intent(context, RemoteService::class.java))
         }
     }
 }
