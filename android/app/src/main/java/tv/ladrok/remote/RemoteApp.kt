@@ -29,7 +29,18 @@ class RemoteApp : Application() {
         _stayConnected.value = on
     }
 
+    private val _airMouse by lazy { MutableStateFlow(prefs.getBoolean(AIR_MOUSE, false)) }
+
+    /** Settings: the Pointer pad as a trackpad (the default), or as the air mouse that follows the phone. */
+    val airMouse: StateFlow<Boolean> get() = _airMouse.asStateFlow()
+
+    fun setAirMouse(on: Boolean) {
+        prefs.edit { putBoolean(AIR_MOUSE, on) }
+        _airMouse.value = on
+    }
+
     private companion object {
         const val STAY_CONNECTED = "stay_connected"
+        const val AIR_MOUSE = "air_mouse"
     }
 }

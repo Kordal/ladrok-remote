@@ -108,6 +108,7 @@ class RemoteActions(
     val onAllow: () -> Unit,
     val onSwitchOn: () -> Unit,
     val onStayConnected: (Boolean) -> Unit,
+    val onAirMouse: (Boolean) -> Unit,
 )
 
 /**
@@ -116,7 +117,7 @@ class RemoteActions(
  * The gear at the top opens Settings in their place.
  */
 @Composable
-fun RemoteScreen(link: Link, tvs: List<Tv>, found: List<Tv>, stayConnected: Boolean, actions: RemoteActions) {
+fun RemoteScreen(link: Link, tvs: List<Tv>, found: List<Tv>, stayConnected: Boolean, airMouse: Boolean, actions: RemoteActions) {
     var tab by rememberSaveable { mutableStateOf(Tab.Remote) }
     var settings by rememberSaveable { mutableStateOf(false) }
     BackHandler(enabled = settings) { settings = false }
@@ -136,10 +137,12 @@ fun RemoteScreen(link: Link, tvs: List<Tv>, found: List<Tv>, stayConnected: Bool
         Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
             // The keys stay where they are, quiet, until a TV is connected.
             if (settings) {
-                Box(Modifier.verticalScroll(rememberScrollState()).padding(vertical = 16.dp)) { Settings(link, stayConnected, actions) }
+                Box(Modifier.verticalScroll(rememberScrollState()).padding(vertical = 16.dp)) { Settings(link, stayConnected, airMouse, actions) }
             } else if (tab == Tab.Pointer) {
                 // No scrolling here: sliding on the pad scrolls the TV.
-                Box(Modifier.padding(vertical = 16.dp).alpha(if (connected) 1f else 0.3f)) { PointerPad(actions, connected) }
+                Box(Modifier.padding(vertical = 16.dp).alpha(if (connected) 1f else 0.3f)) {
+                    if (airMouse) PointerPad(actions, connected) else TrackpadPad(actions, connected)
+                }
             } else {
                 // Scrolls only when the phone is turned sideways and the keys don't fit.
                 Box(Modifier.verticalScroll(rememberScrollState()).padding(vertical = 16.dp).alpha(if (connected) 1f else 0.3f)) {
@@ -238,9 +241,9 @@ private fun Gear(open: Boolean, onClick: () -> Unit) {
     }
 }
 
-/** Settings: Disconnect from the TV, and whether the Remote stays connected to it while minimized. */
+/** Settings: Disconnect from the TV, whether the Remote stays connected to it while minimized, and how the Pointer pad works. */
 @Composable
-private fun Settings(link: Link, stayConnected: Boolean, actions: RemoteActions) {
+private fun Settings(link: Link, stayConnected: Boolean, airMouse: Boolean, actions: RemoteActions) {
     Column(Modifier.widthIn(max = 360.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(stringResource(R.string.settings), color = Ink, fontSize = 18.sp)
         if (link is Link.Connected) {
@@ -252,6 +255,9 @@ private fun Settings(link: Link, stayConnected: Boolean, actions: RemoteActions)
         Text(stringResource(R.string.minimized), color = Muted, fontSize = 14.sp)
         Choice(stringResource(R.string.stay_connected), stringResource(R.string.stay_connected_note), stayConnected) { actions.onStayConnected(true) }
         Choice(stringResource(R.string.only_open), stringResource(R.string.only_open_note), !stayConnected) { actions.onStayConnected(false) }
+        Text(stringResource(R.string.pointer_setting), color = Muted, fontSize = 14.sp, modifier = Modifier.padding(top = 12.dp))
+        Choice(stringResource(R.string.trackpad), stringResource(R.string.trackpad_note), !airMouse) { actions.onAirMouse(false) }
+        Choice(stringResource(R.string.air_mouse), stringResource(R.string.air_mouse_note), airMouse) { actions.onAirMouse(true) }
     }
 }
 
@@ -595,10 +601,138 @@ private fun PointerPad(actions: RemoteActions, enabled: Boolean) {
     }
 }
 
+/**
+ * The Pointer as a trackpad, like a laptop's: slide a finger to move the TV's pointer, tap to click, tap with two
+ * fingers for Back, slide two fingers to scroll (also sideways), and tap then slide to drag.
+ */
+@Composable
+private fun TrackpadPad(actions: RemoteActions, enabled: Boolean) {
+    val haptic = rememberHaptic()
+    val trackpad = remember { Trackpad() }
+    val scope = rememberCoroutineScope()
+    val density = LocalDensity.current.density
+    val notch = SCROLL_NOTCH.value * density
+    val label = stringResource(R.string.pointer_pad)
+    // When the last tap lifted: touching again soon after and sliding drags.
+    var lastTap by remember { mutableStateOf(0L) }
+    fun click() {
+        haptic()
+        actions.onMouse(HidReports.LEFT_BUTTON, 0, 0, 0, 0)
+        // A short press, not a press and release in the same instant, which some apps miss.
+        scope.launch {
+            delay(CLICK_MS)
+            actions.onMouse(0, 0, 0, 0, 0)
+        }
+    }
+
+    Column(
+        Modifier.widthIn(max = 360.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(20.dp),
+    ) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .aspectRatio(0.8f)
+                .raised(RoundedCornerShape(24.dp))
+                .semantics {
+                    contentDescription = label
+                    role = Role.Button
+                    onClick { if (enabled) click(); enabled }
+                }
+                .pointerInput(enabled) {
+                    if (!enabled) return@pointerInput
+                    awaitEachGesture {
+                        val down = awaitFirstDown()
+                        val dragArmed = down.uptimeMillis - lastTap < DOUBLE_TAP_MS
+                        val slop = viewConfiguration.touchSlop
+                        var travel = 0f
+                        var twoFingers = false
+                        var scrolled = false
+                        var dragging = false
+                        var scrollX = 0f
+                        var scrollY = 0f
+                        var lifted = down.uptimeMillis
+                        try {
+                            while (true) {
+                                val event = awaitPointerEvent()
+                                val pressed = event.changes.filter { it.pressed }
+                                lifted = event.changes.maxOf { it.uptimeMillis }
+                                if (pressed.isEmpty()) break
+                                if (pressed.size >= 2) twoFingers = true
+                                if (twoFingers) {
+                                    // Two fingers scroll, the page following them as on a touch screen.
+                                    val moved = pressed.filter { it.previousPressed }
+                                    if (moved.isNotEmpty()) {
+                                        scrollX += moved.sumOf { (it.position.x - it.previousPosition.x).toDouble() }.toFloat() / moved.size
+                                        scrollY += moved.sumOf { (it.position.y - it.previousPosition.y).toDouble() }.toFloat() / moved.size
+                                    }
+                                    if (!scrolled && scrollX * scrollX + scrollY * scrollY > slop * slop) scrolled = true
+                                    if (scrolled) {
+                                        val wheel = (scrollY / notch).toInt()
+                                        val pan = (scrollX / notch).toInt()
+                                        if (wheel != 0 || pan != 0) {
+                                            actions.onMouse(0, 0, 0, wheel, -pan)
+                                            scrollY -= wheel * notch
+                                            scrollX -= pan * notch
+                                        }
+                                    }
+                                } else {
+                                    val change = pressed.first()
+                                    val d = change.position - change.previousPosition
+                                    travel += d.getDistance()
+                                    if (travel > slop) {
+                                        if (dragArmed && !dragging) {
+                                            dragging = true
+                                            haptic()
+                                        }
+                                        val seconds = (change.uptimeMillis - change.previousUptimeMillis) / 1000f
+                                        val (dx, dy) = trackpad.move(d.x / density, d.y / density, seconds)
+                                        if (dx != 0 || dy != 0 || dragging) actions.onMouse(if (dragging) HidReports.LEFT_BUTTON else 0, dx, dy, 0, 0)
+                                    }
+                                }
+                                event.changes.forEach { it.consume() }
+                            }
+                        } finally {
+                            if (dragging) actions.onMouse(0, 0, 0, 0, 0)
+                            trackpad.reset()
+                        }
+                        val quick = lifted - down.uptimeMillis < TAP_MS
+                        if (twoFingers) {
+                            if (!scrolled && quick) {
+                                haptic()
+                                actions.onPress(RemoteKey.Back)
+                                actions.onRelease(RemoteKey.Back)
+                            }
+                        } else if (travel <= slop && quick && !dragging) {
+                            click()
+                            lastTap = lifted
+                        }
+                    }
+                },
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                stringResource(R.string.trackpad_hint),
+                color = Muted,
+                fontSize = 15.sp,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(32.dp),
+            )
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+            RoundKey(RemoteKey.Back, stringResource(R.string.key_back), enabled, actions, haptic) { drawBack(it) }
+            RoundKey(RemoteKey.Home, stringResource(R.string.key_home), enabled, actions, haptic) { drawHome(it) }
+        }
+    }
+}
+
 /** Longer than this, a touch on the pad is aiming, not a click. */
 private const val TAP_MS = 250L
 private const val HOLD_MS = 450L
 private const val CLICK_MS = 40L
+/** Touching the trackpad again this soon after a tap and sliding drags. */
+private const val DOUBLE_TAP_MS = 300L
 
 /** How far a finger slides on the pad for one notch of the TV's scroll wheel. */
 private val SCROLL_NOTCH = 24.dp

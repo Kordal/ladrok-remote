@@ -35,6 +35,12 @@
     <string name="pointer_on">Pointer on</string>
     <string name="pointer_off">Pointer off</string>
     <string name="pointer_pad">Pointer pad</string>
+    <string name="trackpad_hint">Slide a finger to move the pointer. Tap to click, tap with two fingers to go back, slide two fingers to scroll, tap then slide to drag.</string>
+    <string name="pointer_setting">Pointer</string>
+    <string name="trackpad">Trackpad</string>
+    <string name="trackpad_note">Slide a finger on the pad to move the TV\'s pointer, like a laptop\'s trackpad.</string>
+    <string name="air_mouse">Air mouse</string>
+    <string name="air_mouse_note">Point the phone at the TV to move the pointer, using its gyroscope.</string>
     <string name="no_gyroscope">This phone has no gyroscope, so it can\'t move a pointer.</string>
 
     <string name="key_up">Up</string>
