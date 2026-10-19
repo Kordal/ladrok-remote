@@ -46,6 +46,7 @@ class RemoteActivity : ComponentActivity() {
             onAllow = ::allow,
             onSwitchOn = { enable.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)) },
             onStayConnected = { app.setStayConnected(it) },
+            onAirMouse = { app.setAirMouse(it) },
         )
         setContent {
             val link by remote.link.collectAsStateWithLifecycle()
@@ -57,7 +58,8 @@ class RemoteActivity : ComponentActivity() {
             }
             val tvs by remote.tvs.collectAsStateWithLifecycle()
             val found by remote.found.collectAsStateWithLifecycle()
-            RemoteScreen(link, tvs, found, stayConnected, actions)
+            val airMouse by app.airMouse.collectAsStateWithLifecycle()
+            RemoteScreen(link, tvs, found, stayConnected, airMouse, actions)
         }
         if (savedInstanceState == null) askPermissions()
     }

@@ -2,7 +2,7 @@
 
 # Ladrok Remote
 
-A remote control for [Ladrok TV](https://github.com/Kordal/ladrok-tv) on your phone, over Bluetooth. The arrows and OK, Back and Home, playback and volume, the sleep timer, the Launcher's Keypad (1–9 open your apps), the Pointer (point the phone to move a mouse pointer on the TV), and Type, for search boxes. Nothing else.
+A remote control for [Ladrok TV](https://github.com/Kordal/ladrok-tv) on your phone, over Bluetooth. The arrows and OK, Back and Home, playback and volume, the sleep timer, the Launcher's Keypad (1–9 open your apps), the Pointer (a trackpad for a mouse pointer on the TV, or an air mouse, in Settings), and Type, for search boxes. Nothing else.
 
 <p align="center">
   <img src="docs/screenshots/remote-main.png" alt="Remote" width="200">
